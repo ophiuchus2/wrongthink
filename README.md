@@ -1,7 +1,56 @@
 # opensrcchat
 Meant to be a real time chat application, with features similar to discord (a clone basically). It's a self hosted web application with the back end implementation in c++ with support for different clients.
 
+## Building
+
+### Linux
+
+1. clone the repository
+
+`git clone https://github.com/ophiuchus2/opensrcchat.git`
+
+2. initialize & update the submodules
+
+`git submodule update --init --recursive`
+
+3. run build.sh
+
+`./build.sh`
+
+4. the build should complete successfully & the server binary is now located in `bin/wrongthink`
+5. execute
+
+```
+bin/wrongthink
+Thread 140427235682048 listening on port 9001
+Thread 140427331106560 listening on port 9001
+Thread 140427347891968 listening on port 9001
+Thread 140427339499264 listening on port 9001
+Thread 140427244074752 listening on port 9001
+Thread 140427364677376 listening on port 9001
+Thread 140427322185472 listening on port 9001
+Thread 140427227289344 listening on port 9001
+Thread 140427356284672 listening on port 9001
+Thread 140427208390400 listening on port 9001
+Thread 140427218896640 listening on port 9001
+Thread 140427199997696 listening on port 9001
+Thread 140427191076608 listening on port 9001
+Thread 140426497484544 listening on port 9001
+Thread 140426505877248 listening on port 9001
+Thread 140426489091840 listening on port 9001
+received request: /
+```
+
+6. this first version of the example server simply serves the content out of the `web` directory
+7. visiting http://localhost:9001 in a web browser should produce the following text
+
+```
+hello world!
+abc
+```
+
 ## Features
+
 * support a large number of concurrent websocket connections
 * anonymous users + normal user accounts
 * public rooms/channels listing on main page
@@ -14,8 +63,10 @@ Meant to be a real time chat application, with features similar to discord (a cl
 
 * `boost` - https://www.boost.org/
 * `coroutine examples` - https://github.com/luncliff/coroutine
+    
     * https://gist.github.com/MattPD/9b55db49537a90545a90447392ad3aeb
 * `lib of coroutine abstractions` - https://github.com/lewissbaker/cppcoro
+    
     * mit licensed
 * `c++ http server lib` - https://github.com/titi38/libnavajo
     * http
