@@ -1,53 +1,61 @@
-# opensrcchat
+# Wrongthink
 Meant to be a real time chat application, with features similar to discord (a clone basically). It's a self hosted web application with the back end implementation in c++ with support for different clients.
 
 ## Building
 
-### Linux
+### Unix
 
 1. clone the repository
 
-`git clone https://github.com/ophiuchus2/opensrcchat.git`
+`git clone https://github.com/ophiuchus2/wrongthink.git`
 
 2. initialize & update the submodules
 
 `git submodule update --init --recursive`
 
-3. run build.sh
+3. create cmake build directory
 
-`./build.sh`
+`mkdir -p cmake/build`
 
-4. the build should complete successfully & the server binary is now located in `bin/wrongthink`
-5. execute
-
-```
-bin/wrongthink
-Thread 140427235682048 listening on port 9001
-Thread 140427331106560 listening on port 9001
-Thread 140427347891968 listening on port 9001
-Thread 140427339499264 listening on port 9001
-Thread 140427244074752 listening on port 9001
-Thread 140427364677376 listening on port 9001
-Thread 140427322185472 listening on port 9001
-Thread 140427227289344 listening on port 9001
-Thread 140427356284672 listening on port 9001
-Thread 140427208390400 listening on port 9001
-Thread 140427218896640 listening on port 9001
-Thread 140427199997696 listening on port 9001
-Thread 140427191076608 listening on port 9001
-Thread 140426497484544 listening on port 9001
-Thread 140426505877248 listening on port 9001
-Thread 140426489091840 listening on port 9001
-received request: /
-```
-
-6. this first version of the example server simply serves the content out of the `web` directory
-7. visiting http://localhost:9001 in a web browser should produce the following text
+4. run cmake & build
 
 ```
-hello world!
-abc
+cd cmake/build
+cmake ../..
+make
 ```
+
+5. the build should complete successfully & the server + test binaries are now located in `cmake/build`
+
+You should see the following files produced during the build:
+
+* `wrongthink` - server binary
+* `test_client` - client binary
+* `wrongthink.grpc*` - grpc generated files
+  * these include the c++ classes used for client/server communication
+* `wrongthink.pb*` - protobuf generated files
+  * these in include the c++ class definitions for the protobuf data structures
+
+6. execute the server in one terminal and the client in another:
+
+**Server output**
+
+```
+./wrongthink
+wrongthink version: 0.1
+Server listening on 0.0.0.0:50051
+```
+
+**Client output**
+
+```
+./test_client
+got channel: channel 1
+got channel: channel 2
+got channel: channel 3
+```
+
+The client creates 3 channels on the server, then retrieves them & prints their names to the console.
 
 ## Features
 
@@ -58,41 +66,3 @@ abc
 * Allow users to create chat rooms/channels
 * voice chat via webrtc mesh
 * option for full p2p ring based group chats with webrtc
-
-## tech
-
-* `boost` - https://www.boost.org/
-* `coroutine examples` - https://github.com/luncliff/coroutine
-    
-    * https://gist.github.com/MattPD/9b55db49537a90545a90447392ad3aeb
-* `lib of coroutine abstractions` - https://github.com/lewissbaker/cppcoro
-    
-    * mit licensed
-* `c++ http server lib` - https://github.com/titi38/libnavajo
-    * http
-    * ssl
-    * websockets
-    * static & dynamic pages
-    * compile static pages into binary
-    * license: CeCILL-C FREE SOFTWARE LICENSE AGREEMENT
-        * some strange open source license
-* `restbed` - https://github.com/Corvusoft/restbed - c++ http/websocket library for restful applications
-    * AGPL licensed - [wiki](https://en.wikipedia.org/wiki/Affero_General_Public_License)
-    * >This provision requires that the full source code be made available to any network user of the AGPL-licensed work, typically a web application. 
-* **`uWebsockets` - https://github.com/uNetworking/uWebSockets**
-    * Simple, secure & standards compliant web server for the most demanding of applications 
-    * modern
-    * regular updates
-    * websockets & http
-    * Apache License 2.0 - [wiki](https://en.wikipedia.org/wiki/Apache_License)
-    * >The Apache License is a permissive free software license written by the Apache Software Foundation (ASF).[5] It allows users to use the software for any purpose, to distribute it, to modify it, and to distribute modified versions of the software under the terms of the license, without concern for royalties. The ASF and its projects release their software products under the Apache License. The license is also used by many non-ASF projects. 
-* `mongodb c++ driver` - https://github.com/mongodb/mongo-cxx-driver
-* `mongodb` - https://www.mongodb.com/
-* `https://webtorrent.io/faq` - web torrent
-* webrtc
-    * https://github.com/pion/webrtc
-    * https://github.com/webrtc/samples
-    * https://www.html5rocks.com/en/tutorials/webrtc/basics/#toc-signaling
-    * https://webrtc-security.github.io/
-* https://gist.github.com/jo/8619441 - list of js crypto libs
-* https://github.com/signalapp/libsignal-protocol-c
