@@ -1,0 +1,3 @@
+// the configured options and settings for wrongthink
+constexpr int Wrongthink_VERSION_MAJOR = @wrongthink_VERSION_MAJOR@;
+constexpr int Wrongthink_VERSION_MINOR = @wrongthink_VERSION_MINOR@;
