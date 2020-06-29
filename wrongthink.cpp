@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <mutex>
+#include <map>
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/health_check_service_interface.h>
@@ -10,40 +11,59 @@
 #include "wrongthink.grpc.pb.h"
 #include "WrongthinkConfig.h"
 
+#include "SynchronizedChannel.h"
+
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::ServerWriter;
+using grpc::ServerReader;
 using grpc::ServerReaderWriter;
 using grpc::Status;
+using grpc::StatusCode;
 
-std::vector<WrongthinkChannel> wtChannelVector;
-std::mutex vectorMutex;
+std::map<std::string, SynchronizedChannel> channelMap;
+std::mutex channelMapMutex;
 
 class WrongthinkServiceImpl final : public wrongthink::Service {
   Status GetWrongthinkChannels(ServerContext* context, const WrongthinkChannel* request,
     ServerWriter<WrongthinkChannel>* writer) {
     (void)context;
     (void)request;
-    std::lock_guard<std::mutex> lock(vectorMutex);
-    for (auto& ch : wtChannelVector) {
-      writer->Write(ch);
+    std::lock_guard<std::mutex> lock(channelMapMutex);
+    for (const auto& ch : channelMap) {
+      writer->Write(ch.second.getChannel());
     }
     return Status::OK;
   }
 
-  Status CreateWrongthinkChannel(ServerContext* context, const WrongthinkChannel* request,
-    WrongthinkChannel* response) {
+  Status CreateWrongthinkChannel(ServerContext* context,
+    const WrongthinkChannel* request, WrongthinkChannel* response) {
     (void)context;
-    std::lock_guard<std::mutex> lock(vectorMutex);
-    wtChannelVector.push_back(*request);
+    std::lock_guard<std::mutex> lock(channelMapMutex);
+    if (channelMap.count(request->name()) == 1) {
+      // channel already exists
+      return Status(StatusCode::ALREADY_EXISTS, "");
+    }
+    channelMap.emplace(request->name(), *request);
     response->set_channelid(1);
     return Status::OK;
   }
 
-  Status JoinWrongthinkChannel(ServerContext* context,
-    ServerReaderWriter< WrongthinkMessage, WrongthinkMessage>* stream) {
-    return Status::OK;
+  Status SendWrongthinkMessage(ServerContext* context,
+    ServerReader< WrongthinkMessage>* reader, WrongthinkMeta* response) {
+    (void) context;
+    (void) reader;
+    (void) response;
+    return Status(StatusCode::UNIMPLEMENTED, "");
+  }
+
+  Status ListenWrongthinkMessages(ServerContext* context,
+    const WrongthinkMeta* request, ServerWriter< WrongthinkMessage>* writer) {
+    (void) context;
+    (void) request;
+    (void) writer;
+    return Status(StatusCode::UNIMPLEMENTED, "");
   }
 };
 
