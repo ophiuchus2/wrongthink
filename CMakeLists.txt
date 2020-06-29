@@ -56,6 +56,7 @@ add_custom_command(
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
 add_executable(wrongthink "wrongthink.cpp"
+  "SynchronizedChannel.cpp"
   ${wt_proto_srcs}
   ${wt_grpc_srcs})
 target_link_libraries(wrongthink
