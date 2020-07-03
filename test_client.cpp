@@ -40,9 +40,9 @@ void send(std::unique_ptr<wrongthink::Stub> stub) {
 }
 
 int main(int argc, char** argv) {
-  std::shared_ptr<Channel> mchannel(grpc::CreateChannel(
-      "localhost:50051", grpc::InsecureChannelCredentials()));
-  std::unique_ptr<wrongthink::Stub> mstub(wrongthink::NewStub(mchannel));
+  std::shared_ptr<Channel> mchannel = grpc::CreateChannel(
+      "localhost:50051", grpc::InsecureChannelCredentials());
+  std::unique_ptr<wrongthink::Stub> mstub = wrongthink::NewStub(mchannel);
 
   WrongthinkChannel mch, mch1, mch2, resp, dummy;
   mch.set_name("channel 1");
@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
     std::cout << status.error_code() << ": " << status.error_message()
               << std::endl;
 
-  std::unique_ptr< ::grpc::ClientReader< ::WrongthinkChannel>> reader(mstub->GetWrongthinkChannels(&context3, dummy));
+  auto reader = mstub->GetWrongthinkChannels(&context3, dummy);
   while(reader->Read(&resp))
     std::cout << "got channel: " << resp.name() << std::endl;
 
