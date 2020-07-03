@@ -13,6 +13,32 @@ using grpc::Status;
 
 #include "wrongthink.grpc.pb.h"
 
+void listen(std::unique_ptr<wrongthink::Stub> stub) {
+  ClientContext context;
+  ListenWrongthinkMessagesRequest request;
+  WrongthinkMessage msg;
+  request.set_channelname("channel 1");
+  request.set_uname("bob");
+  auto reader = stub->ListenWrongthinkMessages(&context, request);
+  while (reader->Read(&msg))
+    std::cout << msg.uname() << ": " << msg.text() << std::endl;
+}
+
+void send(std::unique_ptr<wrongthink::Stub> stub) {
+  ClientContext context;
+  WrongthinkMeta dummy;
+  std::string text;
+  auto writer = stub->SendWrongthinkMessage(&context, &dummy);
+  while (true) {
+    WrongthinkMessage msg;
+    std::cin >> text;
+    msg.set_text(text);
+    msg.set_uname("alice");
+    msg.set_channelname("channel 1");
+    writer->Write(msg);
+  }
+}
+
 int main(int argc, char** argv) {
   std::shared_ptr<Channel> mchannel(grpc::CreateChannel(
       "localhost:50051", grpc::InsecureChannelCredentials()));
@@ -49,5 +75,14 @@ int main(int argc, char** argv) {
   std::unique_ptr< ::grpc::ClientReader< ::WrongthinkChannel>> reader(mstub->GetWrongthinkChannels(&context3, dummy));
   while(reader->Read(&resp))
     std::cout << "got channel: " << resp.name() << std::endl;
+
+  if(argc > 1) {
+    std::string arg(argv[1]);
+    if(arg == "listen")
+      listen(std::move(mstub));
+    else if (arg == "send")
+      send(std::move(mstub));
+  }
+  std::cout << "terminate" << std::endl;
   return 0;
 }
