@@ -16,6 +16,7 @@
 class SynchronizedChannel {
 public:
   SynchronizedChannel(const WrongthinkChannel& wtChannel);
+  SynchronizedChannel() { }
   const WrongthinkChannel& getChannel() const { return wtChannel_; }
   void appendMessage(const WrongthinkMessage& msg);
   WrongthinkMessage lastMessage();
