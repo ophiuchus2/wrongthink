@@ -6,13 +6,26 @@ project(wrongthink VERSION 0.1)
 # set project version configuration file
 configure_file(include/WrongthinkConfig.h.in WrongthinkConfig.h)
 
- # specify the C++ standard
- set(CMAKE_CXX_STANDARD 17)
- set(CMAKE_CXX_STANDARD_REQUIRED True)
+# specify the C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(WITH_DB2 OFF)
+set(WITH_FIREBIRD OFF)
+set(WITH_MYSQL OFF)
+set(WITH_ODBC OFF)
+set(WITH_ORACLE OFF)
+set(WITH_POSTGRESQL ON)
+
+#set(SOCI_DIR "third_party/soci/cmake")
 
 find_package(Threads REQUIRED)
+#find_package(SOCI REQUIRED)
 
-set(GRPC_AS_SUBMODULE True)
+add_subdirectory(third_party/soci ${CMAKE_CURRENT_BINARY_DIR}/soci EXCLUDE_FROM_ALL)
+# JUST
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -w")
+
+set(GRPC_AS_SUBMODULE TRUE)
 
 if(GRPC_AS_SUBMODULE)
   # One way to build a projects that uses gRPC is to just include the
@@ -130,7 +143,10 @@ add_executable(wrongthink "wrongthink.cpp"
 target_link_libraries(wrongthink
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
-  ${_PROTOBUF_LIBPROTOBUF})
+  ${_PROTOBUF_LIBPROTOBUF}
+  soci_core
+  soci_postgresql
+  pq)
 
 add_executable(test_client "test_client.cpp"
   ${wt_proto_srcs}
