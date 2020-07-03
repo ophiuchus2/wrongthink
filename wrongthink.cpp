@@ -53,17 +53,31 @@ class WrongthinkServiceImpl final : public wrongthink::Service {
   Status SendWrongthinkMessage(ServerContext* context,
     ServerReader< WrongthinkMessage>* reader, WrongthinkMeta* response) {
     (void) context;
-    (void) reader;
     (void) response;
-    return Status(StatusCode::UNIMPLEMENTED, "");
+    WrongthinkMessage msg;
+    while (reader->Read(&msg))
+      if (channelMap.count(msg.channelname()) == 1)
+        channelMap[msg.channelname()].appendMessage(msg);
+      else
+        return Status(StatusCode::INVALID_ARGUMENT, "");
+    return Status::OK;
   }
 
   Status ListenWrongthinkMessages(ServerContext* context,
-    const WrongthinkMeta* request, ServerWriter< WrongthinkMessage>* writer) {
+    const ListenWrongthinkMessagesRequest* request, ServerWriter< WrongthinkMessage>* writer) {
     (void) context;
     (void) request;
-    (void) writer;
-    return Status(StatusCode::UNIMPLEMENTED, "");
+    if (channelMap.count(request->channelname()) == 0)
+      return Status(StatusCode::INVALID_ARGUMENT, "");
+    SynchronizedChannel& channel = channelMap[request->channelname()];
+    // first write all the current messages in the channel
+    std::vector<WrongthinkMessage> messages = channel.getMessages();
+    for (auto& msg : messages)
+      writer->Write(msg);
+    while (true) {
+      writer->Write(channel.waitMessage());
+    }
+    return Status::OK;
   }
 };
 
