@@ -22,6 +22,7 @@ find_package(Threads REQUIRED)
 #find_package(SOCI REQUIRED)
 
 add_subdirectory(third_party/soci ${CMAKE_CURRENT_BINARY_DIR}/soci EXCLUDE_FROM_ALL)
+
 # JUST
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -w")
 
@@ -136,10 +137,15 @@ add_custom_command(
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
+configure_file(third_party/soci/include/soci/soci.h ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+configure_file(third_party/soci/include/soci/postgresql/soci-postgresql.h ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+
 add_executable(wrongthink "wrongthink.cpp"
   "SynchronizedChannel.cpp"
+  "Util.cpp"
   ${wt_proto_srcs}
   ${wt_grpc_srcs})
+
 target_link_libraries(wrongthink
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
@@ -151,6 +157,7 @@ target_link_libraries(wrongthink
 add_executable(test_client "test_client.cpp"
   ${wt_proto_srcs}
   ${wt_grpc_srcs})
+
 target_link_libraries(test_client
   ${_REFLECTION}
   ${_GRPC_GRPCPP}
@@ -161,7 +168,10 @@ target_link_libraries(test_client
 target_include_directories(wrongthink PUBLIC
                            include
                            ${CMAKE_CURRENT_BINARY_DIR}
+                           ${CMAKE_CURRENT_BINARY_DIR}/soci/include
+                           /usr/local/include/
                            )
+
 # include directories
 target_include_directories(test_client PUBLIC
                           include
