@@ -1,6 +1,8 @@
 # Wrongthink
 Meant to be a real time chat application, with features similar to discord (a clone basically). It's a self hosted web application with the back end implementation in c++ with support for different clients.
 
+**Matrix**: #wrongthink:matrix.org
+
 ## Project files
 
 * `wrongthink.cpp` - server implementation
