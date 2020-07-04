@@ -12,6 +12,7 @@
 #include "WrongthinkConfig.h"
 
 #include "SynchronizedChannel.h"
+#include "Util.h"
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -109,6 +110,15 @@ int main(int argc, char** argv) {
     << "."
     << Wrongthink_VERSION_MINOR << std::endl;
 
+  try {
+    std::cout << "validating sql tables." << std::endl;
+    WrongthinkUtils::validateDatabase("wrongthink", "test");
+  }
+  catch (const std::exception& e) {
+    // unexpecdted, terminate
+    std::cout << e.what() << std::endl;
+    return 0;
+  }
   RunServer();
 
   return 0;
