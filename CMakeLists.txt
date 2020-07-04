@@ -170,6 +170,7 @@ target_include_directories(wrongthink PUBLIC
                            ${CMAKE_CURRENT_BINARY_DIR}
                            ${CMAKE_CURRENT_BINARY_DIR}/soci/include
                            /usr/local/include/
+                           /usr/include/postgresql
                            )
 
 # include directories
