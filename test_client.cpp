@@ -44,18 +44,23 @@ int main(int argc, char** argv) {
       "localhost:50051", grpc::InsecureChannelCredentials());
   std::unique_ptr<wrongthink::Stub> mstub = wrongthink::NewStub(mchannel);
 
-  WrongthinkChannel mch, mch1, mch2, resp, dummy;
+  WrongthinkChannel mch, mch1, mch2, resp;
+  GetWrongthinkChannelsRequest channelRequest;
+  channelRequest.set_communityid(1);
   mch.set_name("channel 1");
   mch.set_channelid(678);
-  mch.set_public_(true);
+  mch.set_anonymous(true);
+  mch.set_communityid(1);
 
   mch1.set_name("channel 2");
   mch1.set_channelid(99);
-  mch1.set_public_(true);
+  mch1.set_anonymous(true);
+  mch1.set_communityid(1);
 
   mch2.set_name("channel 3");
   mch2.set_channelid(99);
-  mch2.set_public_(true);
+  mch2.set_anonymous(true);
+  mch2.set_communityid(1);
 
   ClientContext context, context1, context2, context3;
   Status status = mstub->CreateWrongthinkChannel(&context, mch, &resp);
@@ -72,7 +77,7 @@ int main(int argc, char** argv) {
     std::cout << status.error_code() << ": " << status.error_message()
               << std::endl;
 
-  auto reader = mstub->GetWrongthinkChannels(&context3, dummy);
+  auto reader = mstub->GetWrongthinkChannels(&context3, channelRequest);
   while(reader->Read(&resp))
     std::cout << "got channel: " << resp.name() << std::endl;
 
