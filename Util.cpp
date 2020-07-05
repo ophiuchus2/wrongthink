@@ -1,11 +1,18 @@
 #include "Util.h"
-#include "soci.h"
-#include "soci-postgresql.h"
 
 namespace WrongthinkUtils {
-  void validateDatabase(const std::string& user, const std::string& pass) {
+  void setCredentials(const std::string& user, const std::string& pass) {
+    dbUname_ = user;
+    dbPass_ = pass;
+  }
+
+  soci::session getSociSession() {
+    return soci::session(soci::postgresql, "host=localhost dbname=wrongthink user=" + dbUname_ + " password=" + dbPass_);
+  }
+
+  void validateDatabase() {
     // assume that the wrongthink database & user have already been created (manually)
-    soci::session sql(soci::postgresql, "host=localhost dbname=wrongthink user=" + user + " password=" + pass);
+    soci::session sql(soci::postgresql, "host=localhost dbname=wrongthink user=" + dbUname_ + " password=" + dbPass_);
     // create tables if they don't already exist
     // create users table
     sql << "create table if not exists users ("
