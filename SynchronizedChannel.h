@@ -17,6 +17,8 @@ class SynchronizedChannel {
 public:
   SynchronizedChannel(const WrongthinkChannel& wtChannel);
   SynchronizedChannel() { }
+  SynchronizedChannel(int channelId,
+                      const std::string& channelName);
   const WrongthinkChannel& getChannel() const { return wtChannel_; }
   void appendMessage(const WrongthinkMessage& msg);
   WrongthinkMessage lastMessage();
@@ -28,7 +30,7 @@ public:
   bool operator<(const WrongthinkChannel& sch);
 
 private:
-  const WrongthinkChannel wtChannel_;
+  WrongthinkChannel wtChannel_;
   WrongthinkMessage lastMessage_;
   std::vector<WrongthinkMessage> msgVector_;
   std::mutex channelMutex_;

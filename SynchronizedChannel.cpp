@@ -8,6 +8,12 @@ SynchronizedChannel::SynchronizedChannel(const WrongthinkChannel& wtChannel):
   channelCondition_{}
 { }
 
+SynchronizedChannel::SynchronizedChannel(int channelId,
+                    const std::string& channelName): wtChannel_{} {
+  wtChannel_.set_channelid(channelId);
+  wtChannel_.set_name(channelName);
+}
+
 void SynchronizedChannel::appendMessage(const WrongthinkMessage& msg) {
   {
     std::lock_guard<std::mutex> lock(channelMutex_);
