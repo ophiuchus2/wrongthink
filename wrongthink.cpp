@@ -35,6 +35,22 @@ using soci::into;
 std::map<int, SynchronizedChannel> channelMap;
 std::mutex channelMapMutex;
 
+bool checkForChannel(int channelid, soci::session& sql) {
+  if (channelMap.count(channelid) != 1) {
+    row r;
+    sql << "select name from channels where channel_id = :id",
+          use(channelid), into(r);
+    if(r.get_indicator(0) != soci::i_null)
+      channelMap.emplace( std::piecewise_construct,
+                          std::forward_as_tuple(channelid),
+                          std::forward_as_tuple(channelid,
+                                                r.get<std::string>(0)));
+    else
+      return false;
+  }
+  return true;
+}
+
 class WrongthinkServiceImpl final : public wrongthink::Service {
   Status GetWrongthinkChannels(ServerContext* context,
     const GetWrongthinkChannelsRequest* request,
@@ -101,18 +117,8 @@ class WrongthinkServiceImpl final : public wrongthink::Service {
         thread_id = msg.threadid();
         thread_child = msg.threadchild();
         text = msg.text();
-        if (channelMap.count(msg.channelid()) != 1) {
-          row r;
-          sql << "select name from channels where channel_id = :id",
-                use(channelid), into(r);
-          if(r.get_indicator(0) != soci::i_null)
-            channelMap.emplace( std::piecewise_construct,
-                                std::forward_as_tuple(channelid),
-                                std::forward_as_tuple(channelid,
-                                                      r.get<std::string>(0)));
-          else
-            return Status(StatusCode::INVALID_ARGUMENT, "");
-        }
+        if(!checkForChannel(msg.channelid(), sql))
+          return Status(StatusCode::INVALID_ARGUMENT, "");
         channelMap[msg.channelid()].appendMessage(msg);
         st.execute(true);
       }
@@ -128,7 +134,10 @@ class WrongthinkServiceImpl final : public wrongthink::Service {
     ServerWriter< WrongthinkMessage>* writer) {
     (void) context;
     (void) request;
-    if (channelMap.count(request->channelid()) == 0)
+    soci::session sql = WrongthinkUtils::getSociSession();
+    int channelid = request->channelid();
+    int count = 0;
+    if (!checkForChannel(channelid, sql))
       return Status(StatusCode::INVALID_ARGUMENT, "");
     SynchronizedChannel& channel = channelMap[request->channelid()];
     // first write all the current messages in the channel
@@ -140,6 +149,7 @@ class WrongthinkServiceImpl final : public wrongthink::Service {
     }
     return Status::OK;
   }
+
 };
 
 void RunServer() {
