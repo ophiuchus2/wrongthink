@@ -57,9 +57,12 @@ class WrongthinkServiceImpl final : public wrongthink::Service {
     ServerWriter<WrongthinkChannel>* writer) {
     (void)context;
     try {
+      int community = request->communityid();
       soci::session sql = WrongthinkUtils::getSociSession();
       rowset<row> rs = (sql.prepare << "select channel_id, name, "
-                                    << "allow_anon from channels");
+                                    << "allow_anon from channels "
+                                    << "where community_id = :community",
+                                    use(community));
       for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
         WrongthinkChannel channel;
         row const& row = *it;
@@ -76,18 +79,22 @@ class WrongthinkServiceImpl final : public wrongthink::Service {
   }
 
   Status CreateWrongthinkChannel(ServerContext* context,
-    const WrongthinkChannel* request, WrongthinkChannel* response) {
+    const CreateWrongThinkChannelRequest* request, WrongthinkChannel* response) {
     (void)context;
     try {
-      int channel_id = request->channelid();
+      int channelid = 0;
+      int community = request->communityid();
       char anonymous = request->anonymous();
       std::string name = request->name();
+      int admin = request->adminid();
       soci::session sql = WrongthinkUtils::getSociSession();
-      sql << "insert into channels(channel_id,name, "
-          << "allow_anon) "
-          << "values(:channel_id,:name,:anonymous)",
-          use(channel_id), use(name), use(anonymous);
-      response->set_channelid(1);
+      sql << "insert into channels(name, "
+          << "community, admin, allow_anon) "
+          << "values(:name,:community,:admin,:anonymous)",
+           use(name), use(community), use(admin), use(anonymous);
+      sql << "select channel_id from channels where name = :name",
+        use(name), into(channelid);
+      response->set_channelid(channelid);
     } catch (const std::exception& e) {
       std::cout << e.what() << std::endl;
       return Status(StatusCode::INTERNAL, "");
@@ -140,10 +147,6 @@ class WrongthinkServiceImpl final : public wrongthink::Service {
     if (!checkForChannel(channelid, sql))
       return Status(StatusCode::INVALID_ARGUMENT, "");
     SynchronizedChannel& channel = channelMap[request->channelid()];
-    // first write all the current messages in the channel
-    std::vector<WrongthinkMessage> messages = channel.getMessages();
-    for (auto& msg : messages)
-      writer->Write(msg);
     while (true) {
       writer->Write(channel.waitMessage());
     }
