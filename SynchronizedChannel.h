@@ -21,6 +21,7 @@ public:
                       const std::string& channelName);
   const WrongthinkChannel& getChannel() const { return wtChannel_; }
   void appendMessage(const WrongthinkMessage& msg);
+  void sendMessage(const WrongthinkMessage& msg);
   WrongthinkMessage lastMessage();
   std::vector<WrongthinkMessage> getMessages();
   WrongthinkMessage waitMessage();
