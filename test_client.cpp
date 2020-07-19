@@ -44,21 +44,22 @@ int main(int argc, char** argv) {
       "localhost:50051", grpc::InsecureChannelCredentials());
   std::unique_ptr<wrongthink::Stub> mstub = wrongthink::NewStub(mchannel);
 
-  WrongthinkChannel mch, mch1, mch2, resp;
+  CreateWrongThinkChannelRequest mch, mch1, mch2;
+  WrongthinkChannel resp;
   GetWrongthinkChannelsRequest channelRequest;
   channelRequest.set_communityid(1);
   mch.set_name("channel 1");
-  mch.set_channelid(678);
+  mch.set_communityid(678);
   mch.set_anonymous(true);
   mch.set_communityid(1);
 
   mch1.set_name("channel 2");
-  mch1.set_channelid(99);
+  mch1.set_communityid(99);
   mch1.set_anonymous(true);
-  mch1.set_communityid(1);
+  mch1.set_adminid(1);
 
   mch2.set_name("channel 3");
-  mch2.set_channelid(99);
+  mch2.set_communityid(99);
   mch2.set_anonymous(true);
   mch2.set_communityid(1);
 
