@@ -13,41 +13,38 @@ using grpc::Status;
 
 #include "wrongthink.grpc.pb.h"
 
-void listen(std::unique_ptr<wrongthink::Stub> stub) {
+std::unique_ptr<wrongthink::Stub> mstub;
+
+void testUsers(){
   ClientContext context;
-  ListenWrongthinkMessagesRequest request;
-  WrongthinkMessage msg;
-  request.set_channelname("channel 1");
-  request.set_uname("bob");
-  auto reader = stub->ListenWrongthinkMessages(&context, request);
-  while (reader->Read(&msg))
-    std::cout << msg.uname() << ": " << msg.text() << std::endl;
+  CreateUserRequest req1, req2;
+  WrongthinkUser resp;
+  req1.set_uname("user1");
+  req1.set_password("pass1");
+  req1.set_admin(true);
+
+  req2.set_uname("user2");
+  req2.set_password("pass2");
+  req2.set_admin(false);
+
+  std::cout << "creating user1" << std::endl;
+  Status status = mstub->CreateUser(&context, req1, &resp);
+  if (!status.ok())
+    std::cout << status.error_code() << ": " << status.error_message()
+              << std::endl;
+
+  std::cout << "creating user2" << std::endl;
+  status = mstub->CreateUser(&context, req2, &resp);
+  if (!status.ok())
+    std::cout << status.error_code() << ": " << status.error_message()
+              << std::endl;
+
 }
 
-void send(std::unique_ptr<wrongthink::Stub> stub) {
-  ClientContext context;
-  WrongthinkMeta dummy;
-  std::string text;
-  auto writer = stub->SendWrongthinkMessage(&context, &dummy);
-  while (true) {
-    WrongthinkMessage msg;
-    std::cin >> text;
-    msg.set_text(text);
-    msg.set_uname("alice");
-    msg.set_channelname("channel 1");
-    writer->Write(msg);
-  }
-}
-
-int main(int argc, char** argv) {
-  std::shared_ptr<Channel> mchannel = grpc::CreateChannel(
-      "localhost:50051", grpc::InsecureChannelCredentials());
-  std::unique_ptr<wrongthink::Stub> mstub = wrongthink::NewStub(mchannel);
-
+void createChannels() {
   CreateWrongThinkChannelRequest mch, mch1, mch2;
   WrongthinkChannel resp;
-  GetWrongthinkChannelsRequest channelRequest;
-  channelRequest.set_communityid(1);
+
   mch.set_name("channel 1");
   mch.set_communityid(678);
   mch.set_anonymous(true);
@@ -77,10 +74,54 @@ int main(int argc, char** argv) {
   if (!status.ok())
     std::cout << status.error_code() << ": " << status.error_message()
               << std::endl;
+}
 
-  auto reader = mstub->GetWrongthinkChannels(&context3, channelRequest);
+void getChannels() {
+  ClientContext context;
+  WrongthinkChannel resp;
+  GetWrongthinkChannelsRequest channelRequest;
+  channelRequest.set_communityid(1);
+  auto reader = mstub->GetWrongthinkChannels(&context, channelRequest);
   while(reader->Read(&resp))
     std::cout << "got channel: " << resp.name() << std::endl;
+
+}
+
+void listen(std::unique_ptr<wrongthink::Stub> stub) {
+  ClientContext context;
+  ListenWrongthinkMessagesRequest request;
+  WrongthinkMessage msg;
+  request.set_channelname("channel 1");
+  request.set_uname("bob");
+  auto reader = stub->ListenWrongthinkMessages(&context, request);
+  while (reader->Read(&msg))
+    std::cout << msg.uname() << ": " << msg.text() << std::endl;
+
+}
+
+void send(std::unique_ptr<wrongthink::Stub> stub) {
+  ClientContext context;
+  WrongthinkMeta dummy;
+  std::string text;
+  auto writer = stub->SendWrongthinkMessage(&context, &dummy);
+  while (true) {
+    WrongthinkMessage msg;
+    std::cin >> text;
+    msg.set_text(text);
+    msg.set_uname("alice");
+    msg.set_channelname("channel 1");
+    writer->Write(msg);
+  }
+}
+
+int main(int argc, char** argv) {
+  std::shared_ptr<Channel> mchannel = grpc::CreateChannel(
+      "localhost:50051", grpc::InsecureChannelCredentials());
+  mstub = wrongthink::NewStub(mchannel);
+
+  testUsers();
+  createChannels();
+  getChannels();
 
   if(argc > 1) {
     std::string arg(argv[1]);
