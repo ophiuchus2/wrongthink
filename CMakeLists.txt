@@ -143,6 +143,7 @@ configure_file(third_party/soci/include/soci/postgresql/soci-postgresql.h ${CMAK
 add_executable(wrongthink "wrongthink.cpp"
   "SynchronizedChannel.cpp"
   "Util.cpp"
+  "WrongthinkServiceImpl.cpp"
   ${wt_proto_srcs}
   ${wt_grpc_srcs})
 

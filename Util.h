@@ -12,6 +12,6 @@ namespace WrongthinkUtils {
   void setCredentials(const std::string& user, const std::string& pass);
   soci::session getSociSession();
   void validateDatabase();
-  static std::string dbUname_;
-  static std::string dbPass_;
+  extern std::string dbUname_;
+  extern std::string dbPass_;
 }

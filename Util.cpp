@@ -1,6 +1,9 @@
 #include "Util.h"
 
 namespace WrongthinkUtils {
+  std::string dbUname_;
+  std::string dbPass_;
+
   void setCredentials(const std::string& user, const std::string& pass) {
     dbUname_ = user;
     dbPass_ = pass;
