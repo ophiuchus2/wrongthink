@@ -32,11 +32,28 @@ target_include_directories(wrongthink PUBLIC
                            )
 ```
 
+
+Postgres can either be manually set up locally, or automatically using docker
+
+#### Local Setup
+
 Once postgresql is installed, the following needs to be done manually prior to running the wrongthink server:
 
 1. Create a database user named `wrongthink` with password `test`
    1. The database username/password will come from a configuration file in the future
 2. Create a new database named `wrongthink` that's owned by the wrongthink user
+
+#### Using Docker
+
+Install docker and docker-compose. The docker package is `docker.io` on debian based systems due to a naming conflict but the compose package should be `docker-compose`.
+
+From the project root the following commands can then be used to control the database container:
+
+- `sudo docker-compose up -d` - Start the database
+- `sudo docker-compose down` - Stop the database
+- `sudo docker-compose logs` - View the logs
+- `sudo docker-compose rm` - Remove the database container so it can be started fresh
+
 
 ### Unix
 
