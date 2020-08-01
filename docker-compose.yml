@@ -1,0 +1,11 @@
+version: '3.0'
+
+services:
+  postgres:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_USER: "wrongthink"
+      POSTGRES_PASSWORD: "test"
+      POSTGRES_DB: "wrongthink"
+    ports:
+      - "5432:5432"
