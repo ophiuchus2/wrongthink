@@ -23,6 +23,10 @@ find_package(Threads REQUIRED)
 
 add_subdirectory(third_party/soci ${CMAKE_CURRENT_BINARY_DIR}/soci EXCLUDE_FROM_ALL)
 
+# Add googletest directly to our build. This defines
+# the gtest and gtest_main targets.
+add_subdirectory(third_party/googletest ${CMAKE_CURRENT_BINARY_DIR}/googletest EXCLUDE_FROM_ALL)
+
 # JUST
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -w")
 
