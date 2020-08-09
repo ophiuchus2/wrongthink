@@ -10,3 +10,6 @@
 [submodule "third_party/soci"]
 	path = third_party/soci
 	url = https://github.com/SOCI/soci.git
+[submodule "third_party/googletest"]
+	path = third_party/googletest
+	url = https://github.com/google/googletest.git
