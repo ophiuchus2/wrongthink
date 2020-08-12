@@ -21,6 +21,12 @@ Status WrongthinkServiceImpl::GetWrongthinkChannels(ServerContext* context,
   const GetWrongthinkChannelsRequest* request,
   ServerWriter<WrongthinkChannel>* writer) {
   (void)context;
+  ServerWriterWrapper<WrongthinkChannel> wrapper(writer);
+  return GetWrongthinkChannelsImpl(request, &wrapper);
+}
+
+Status WrongthinkServiceImpl::GetWrongthinkChannelsImpl(const GetWrongthinkChannelsRequest* request,
+  ServerWriterWrapper<WrongthinkChannel>* writer) {
   try {
     int community = request->communityid();
     soci::session sql = WrongthinkUtils::getSociSession();
@@ -34,6 +40,7 @@ Status WrongthinkServiceImpl::GetWrongthinkChannels(ServerContext* context,
       channel.set_channelid(row.get<int>(0));
       channel.set_name(row.get<std::string>(1));
       channel.set_anonymous(row.get<bool>(2));
+      channel.set_communityid(community);
       writer->Write(channel);
     }
   } catch (const std::exception& e) {
@@ -70,6 +77,12 @@ Status WrongthinkServiceImpl::CreateWrongthinkChannel(ServerContext* context,
 Status WrongthinkServiceImpl::SendWrongthinkMessage(ServerContext* context,
   ServerReader< WrongthinkMessage>* reader, WrongthinkMeta* response) {
   (void) context;
+  ServerReaderWrapper< WrongthinkMessage> wrapper(reader);
+  return SendWrongthinkMessageImpl(&wrapper, response);
+}
+
+Status WrongthinkServiceImpl::SendWrongthinkMessageImpl(ServerReaderWrapper< WrongthinkMessage>* reader,
+  WrongthinkMeta* response) {
   (void) response;
   WrongthinkMessage msg;
   try {
@@ -106,7 +119,13 @@ Status WrongthinkServiceImpl::ListenWrongthinkMessages(ServerContext* context,
   const ListenWrongthinkMessagesRequest* request,
   ServerWriter< WrongthinkMessage>* writer) {
   (void) context;
-  (void) request;
+  ServerWriterWrapper< WrongthinkMessage> wrapper(writer);
+  return ListenWrongthinkMessagesImpl(request, &wrapper);
+}
+
+/* needed to make the rpc function testable */
+Status WrongthinkServiceImpl::ListenWrongthinkMessagesImpl(const ListenWrongthinkMessagesRequest* request,
+  ServerWriterWrapper< WrongthinkMessage>* writer) {
   soci::session sql = WrongthinkUtils::getSociSession();
   int channelid = request->channelid();
   int count = 0;
@@ -122,6 +141,14 @@ Status WrongthinkServiceImpl::ListenWrongthinkMessages(ServerContext* context,
 Status WrongthinkServiceImpl::GetWrongthinkMessages(ServerContext* context,
   const GetWrongthinkMessagesRequest* request,
   ServerWriter< WrongthinkMessage>* writer) {
+  (void)context;
+  ServerWriterWrapper< WrongthinkMessage> wrapper(writer);
+  return GetWrongthinkMessagesImpl(request, &wrapper);
+}
+
+/* needed to make the rpc function testable */
+Status WrongthinkServiceImpl::GetWrongthinkMessagesImpl(const GetWrongthinkMessagesRequest* request,
+  ServerWriterWrapper< WrongthinkMessage>* writer) {
   int channelid = request->channelid();
   int limit = request->limit();
   int afterid = request->afterid();
@@ -148,6 +175,7 @@ Status WrongthinkServiceImpl::GetWrongthinkMessages(ServerContext* context,
     std::cout << e.what() << std::endl;
     return Status(StatusCode::INTERNAL, "");
   }
+  return Status::OK;
 }
 
 Status WrongthinkServiceImpl::CreateUser(ServerContext* context, const CreateUserRequest* request,
