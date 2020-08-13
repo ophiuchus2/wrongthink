@@ -30,6 +30,7 @@ namespace WrongthinkUtils {
     const std::string& dbname);
   soci::session getSociSession();
   void validateDatabase();
+  void clearDatabase();
   extern std::string dbUname_;
   extern std::string dbPass_;
 }

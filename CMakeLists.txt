@@ -168,6 +168,35 @@ target_link_libraries(test_client
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF})
 
+# build tests
+add_executable(tests "test/rpc_tests.cpp"
+  "SynchronizedChannel.cpp"
+  "Util.cpp"
+  "WrongthinkServiceImpl.cpp"
+  ${wt_proto_srcs}
+  ${wt_grpc_srcs})
+
+target_link_libraries(tests
+  gtest_main
+  ${_REFLECTION}
+  ${_GRPC_GRPCPP}
+  ${_PROTOBUF_LIBPROTOBUF}
+  soci_core
+  soci_postgresql
+  pq)
+
+target_include_directories(tests PUBLIC
+                           include
+                           ${CMAKE_CURRENT_BINARY_DIR}
+                           ${CMAKE_CURRENT_BINARY_DIR}/soci/include
+                           /usr/local/include/
+                           /usr/include/postgresql
+                           .)
+
+target_compile_definitions(tests PUBLIC GTEST)
+
+enable_testing()
+add_test(NAME TestRpc COMMAND tests)
 
 # include directories
 target_include_directories(wrongthink PUBLIC

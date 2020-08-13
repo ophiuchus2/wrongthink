@@ -21,6 +21,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "Util.h"
 #include "SynchronizedChannel.h"
 #include <vector>
+#include <ctime>
 
 // grpc using statements
 using grpc::Server;
@@ -40,7 +41,7 @@ using soci::statement;
 using soci::use;
 using soci::into;
 
-template<class obj>
+template<typename obj>
 class ServerReaderWrapper {
 public:
   ServerReaderWrapper(): objList{} { }
@@ -48,7 +49,7 @@ public:
 
   bool Read(obj* _obj) {
 #ifdef GTEST
-    static std::vector<obj>::iterator it = objList.begin();
+    static typename std::vector<obj>::iterator it = objList.begin();
     if(it == objList.end())
       return false;
     *_obj = *it;
@@ -66,7 +67,7 @@ private:
   ServerReader<obj>* reader;
 };
 
-template<class obj>
+template<typename obj>
 class ServerWriterWrapper {
 public:
   ServerWriterWrapper(): objList{}, writer{} { }
@@ -74,7 +75,7 @@ public:
 
   void Write(const obj& _obj) {
 #ifdef GTEST
-    objList.append(_obj);
+    objList.push_back(_obj);
 #else
     writer->Write(_obj);
 #endif

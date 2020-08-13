@@ -32,14 +32,14 @@ Status WrongthinkServiceImpl::GetWrongthinkChannelsImpl(const GetWrongthinkChann
     soci::session sql = WrongthinkUtils::getSociSession();
     rowset<row> rs = (sql.prepare << "select channel_id, name, "
                                   << "allow_anon from channels "
-                                  << "where community_id = :community",
+                                  << "where community = :community",
                                   use(community));
     for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
       WrongthinkChannel channel;
       row const& row = *it;
       channel.set_channelid(row.get<int>(0));
       channel.set_name(row.get<std::string>(1));
-      channel.set_anonymous(row.get<bool>(2));
+      channel.set_anonymous(row.get<int>(2));
       channel.set_communityid(community);
       writer->Write(channel);
     }
@@ -56,7 +56,7 @@ Status WrongthinkServiceImpl::CreateWrongthinkChannel(ServerContext* context,
   try {
     int channelid = 0;
     int community = request->communityid();
-    char anonymous = request->anonymous();
+    int anonymous = request->anonymous();
     std::string name = request->name();
     int admin = request->adminid();
     soci::session sql = WrongthinkUtils::getSociSession();
@@ -85,7 +85,7 @@ Status WrongthinkServiceImpl::CreateWrongthinkCommunity(ServerContext* context,
     sql << "insert into communities (name, admin, public) "
         << "values(:name,:admin,:public)", use(name), use(admin), use(pub);
     sql << "select community_id from communities where name = :name",
-      use(name), int(communityid);
+      use(name), into(communityid);
     response->set_communityid(communityid);
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
@@ -108,18 +108,18 @@ Status WrongthinkServiceImpl::SendWrongthinkMessageImpl(ServerReaderWrapper< Wro
   try {
     soci::session sql = WrongthinkUtils::getSociSession();
     int channelid = 0;
-    int uname = 0;
+    int user_id = 0;
     int thread_id = 0;
-    char thread_child = 0;
+    int thread_child = 0;
     std::string text;
     statement st = (sql.prepare <<
-              "insert into message(uname,channel,thread_id,thread_child, mtext)"
-              <<" values(:uname,:channel,:thread_id,:thread_child)",
-              use(uname), use(channelid), use(thread_id), use(thread_child),
+              "insert into message(user_id,channel,thread_id,thread_child, mtext)"
+              <<" values(:user_id,:channel,:thread_id,:thread_child,:text)",
+              use(user_id), use(channelid), use(thread_id), use(thread_child),
               use(text));
     while (reader->Read(&msg)) {
       channelid = msg.channelid();
-      uname = msg.userid();
+      user_id = msg.userid();
       thread_id = msg.threadid();
       thread_child = msg.threadchild();
       text = msg.text();
@@ -176,19 +176,20 @@ Status WrongthinkServiceImpl::GetWrongthinkMessagesImpl(const GetWrongthinkMessa
   try {
     soci::session sql = WrongthinkUtils::getSociSession();
     rowset<row> rs = (sql.prepare << "select * from message inner join users on "
-                << "message.uname = users.user_id where "
+                << "message.user_id = users.user_id where "
                 << "message.channel = :channelid", use(channelid));
     for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
       row const& row = *it;
       WrongthinkMessage msg;
-      msg.set_uname(row.get<std::string>("users.uname"));
+      msg.set_uname(row.get<std::string>("uname"));
       msg.set_channelid(channelid);
       msg.set_userid(row.get<int>("user_id"));
       msg.set_threadid(row.get<int>("thread_id"));
-      msg.set_threadchild(row.get<bool>("thread_child"));
-      msg.set_edited(row.get<bool>("edited"));
+      msg.set_threadchild(row.get<int>("thread_child"));
+      msg.set_edited(row.get<int>("edited"));
       msg.set_text(row.get<std::string>("mtext"));
-      msg.set_date(row.get<int>("mdate"));
+      std::tm tm = row.get<std::tm>("mdate");
+      msg.set_date(mktime(&tm));
       writer->Write(msg);
     }
   } catch (const std::exception& e) {
@@ -203,7 +204,7 @@ Status WrongthinkServiceImpl::CreateUser(ServerContext* context, const CreateUse
   try {
     std::string uname = request->uname();
     std::string password = request->password();
-    char admin = request->admin();
+    int admin = request->admin();
     int uid = 0;
     soci::session sql = WrongthinkUtils::getSociSession();
     sql << "insert into users (uname,password,admin) values(:uname,:password,:admin)",
