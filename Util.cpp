@@ -46,7 +46,7 @@ namespace WrongthinkUtils {
             "community_id       int   primary key,"
             "name               varchar(100) unique not null,"
             "admin              int references users,"
-            "public             boolean)";
+            "public             boolean default true)";
 
     // create channel table
     sql <<  "create table if not exists channels ("
