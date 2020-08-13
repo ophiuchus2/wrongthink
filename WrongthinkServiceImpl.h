@@ -101,6 +101,10 @@ public:
     const CreateWrongThinkChannelRequest* request,
     WrongthinkChannel* response) override;
 
+  Status CreateWrongthinkCommunity(ServerContext* context,
+    const CreateWrongthinkCommunityRequest* request,
+    WrongthinkCommunity* response) override;
+
   Status SendWrongthinkMessage(ServerContext* context,
     ServerReader< WrongthinkMessage>* reader, WrongthinkMeta* response) override;
 

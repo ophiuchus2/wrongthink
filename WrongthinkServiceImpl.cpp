@@ -74,6 +74,26 @@ Status WrongthinkServiceImpl::CreateWrongthinkChannel(ServerContext* context,
   return Status::OK;
 }
 
+Status WrongthinkServiceImpl::CreateWrongthinkCommunity(ServerContext* context,
+  const CreateWrongthinkCommunityRequest* request, WrongthinkCommunity* response) {
+  try {
+    int communityid = 0;
+    std::string name = request->name();
+    int admin = request->adminid();
+    int pub = request->public_();
+    soci::session sql = WrongthinkUtils::getSociSession();
+    sql << "insert into communities (name, admin, public) "
+        << "values(:name,:admin,:public)", use(name), use(admin), use(pub);
+    sql << "select community_id from communities where name = :name",
+      use(name), int(communityid);
+    response->set_communityid(communityid);
+  } catch (const std::exception& e) {
+    std::cout << e.what() << std::endl;
+    return Status(StatusCode::INTERNAL, "");
+  }
+  return Status::OK;
+}
+
 Status WrongthinkServiceImpl::SendWrongthinkMessage(ServerContext* context,
   ServerReader< WrongthinkMessage>* reader, WrongthinkMeta* response) {
   (void) context;
