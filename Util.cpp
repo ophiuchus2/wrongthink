@@ -20,14 +20,26 @@ If not, see <https://www.gnu.org/licenses/>.
 namespace WrongthinkUtils {
   std::string dbUname_;
   std::string dbPass_;
+  std::string dbName_;
 
-  void setCredentials(const std::string& user, const std::string& pass) {
+  void setCredentials(const std::string& user, const std::string& pass,
+    const std::string& dbname) {
     dbUname_ = user;
     dbPass_ = pass;
+    dbName_ = dbname;
   }
 
   soci::session getSociSession() {
-    return soci::session(soci::postgresql, "host=localhost dbname=wrongthink user=" + dbUname_ + " password=" + dbPass_);
+    return soci::session(soci::postgresql, "host=localhost dbname=" + dbName_ + " user=" + dbUname_ + " password=" + dbPass_);
+  }
+
+  void clearDatabase() {
+    soci::session sql(soci::postgresql, "host=localhost dbname=" + dbName_ + " user=" + dbUname_ + " password=" + dbPass_);
+    sql << "drop table if exists users";
+    sql << "drop table if exists communities";
+    sql << "drop table if exists channels";
+    sql << "drop table if exists message";
+    sql << "drop table if exists control_message";
   }
 
   void validateDatabase() {

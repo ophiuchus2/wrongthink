@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
 
   try {
     std::cout << "validating sql tables." << std::endl;
-    WrongthinkUtils::setCredentials("wrongthink", "test");
+    WrongthinkUtils::setCredentials("wrongthink", "test", "wrongthink");
     WrongthinkUtils::validateDatabase();
   }
   catch (const std::exception& e) {
