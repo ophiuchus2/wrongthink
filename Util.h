@@ -26,7 +26,8 @@ namespace WrongthinkUtils {
   * @param [in] user db username.
   * @param [in] pass db user password.
   */
-  void setCredentials(const std::string& user, const std::string& pass);
+  void setCredentials(const std::string& user, const std::string& pass,
+    const std::string& dbname);
   soci::session getSociSession();
   void validateDatabase();
   extern std::string dbUname_;
