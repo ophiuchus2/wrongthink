@@ -18,6 +18,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include <string>
 #include "soci.h"
 #include "soci-postgresql.h"
+#include "soci-sqlite3.h"
 
 namespace WrongthinkUtils {
   /**
@@ -26,11 +27,12 @@ namespace WrongthinkUtils {
   * @param [in] user db username.
   * @param [in] pass db user password.
   */
-  void setCredentials(const std::string& user, const std::string& pass,
+  void setupPostgres(const std::string& user, const std::string& pass,
     const std::string& dbname);
+  void setupSqlite(const std::string &dbname);
   soci::session getSociSession();
   void validateDatabase();
   void clearDatabase();
-  extern std::string dbUname_;
-  extern std::string dbPass_;
+  extern soci::backend_factory const *dbType_;
+  extern std::string dbConnectString_;
 }

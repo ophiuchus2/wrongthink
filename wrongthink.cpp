@@ -60,8 +60,17 @@ int main(int argc, char** argv) {
     << Wrongthink_VERSION_MINOR << std::endl;
 
   try {
+
+    if( argc == 2 && strcmp(argv[1], "pg") == 0 ) {
+      std::cout << "Using postgres backend" << std::endl;
+      WrongthinkUtils::setupPostgres("wrongthink", "test", "wrongthink");
+    } else {
+      std::cout << "Using sqlite backend" << std::endl;
+      WrongthinkUtils::setupSqlite("testdb.sqlite");
+    }
+
     std::cout << "validating sql tables." << std::endl;
-    WrongthinkUtils::setCredentials("wrongthink", "test", "wrongthink");
+
     WrongthinkUtils::validateDatabase();
   }
   catch (const std::exception& e) {

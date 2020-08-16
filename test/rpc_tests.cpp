@@ -47,7 +47,7 @@ namespace {
 
   TEST(RpcSuite, TestRpc) {
 
-    WrongthinkUtils::setCredentials("wrongthink", "test", "testdb");
+    WrongthinkUtils::setupPostgres("wrongthink", "test", "testdb");
     WrongthinkUtils::clearDatabase();
     WrongthinkUtils::validateDatabase();
 

@@ -21,20 +21,26 @@ namespace WrongthinkUtils {
   std::string dbUname_;
   std::string dbPass_;
   std::string dbName_;
+  std::string dbConnectString_;
+  soci::backend_factory const *dbType_;
 
-  void setCredentials(const std::string& user, const std::string& pass,
+  void setupPostgres(const std::string& user, const std::string& pass,
     const std::string& dbname) {
-    dbUname_ = user;
-    dbPass_ = pass;
-    dbName_ = dbname;
+    dbType_ = &soci::postgresql;
+    dbConnectString_ = "host=localhost dbname=" + dbname + " user=" + user + " password=" + pass;
+  }
+
+  void setupSqlite(const std::string &dbname) {
+    dbType_ = &soci::sqlite3;
+    dbConnectString_ = dbname;
   }
 
   soci::session getSociSession() {
-    return soci::session(soci::postgresql, "host=localhost dbname=" + dbName_ + " user=" + dbUname_ + " password=" + dbPass_);
+    return soci::session(*dbType_, dbConnectString_);
   }
 
   void clearDatabase() {
-    soci::session sql(soci::postgresql, "host=localhost dbname=" + dbName_ + " user=" + dbUname_ + " password=" + dbPass_);
+    soci::session sql(*dbType_, dbConnectString_);
     sql << "drop table if exists message";
     sql << "drop table if exists control_message";
     sql << "drop table if exists channels";
@@ -44,7 +50,7 @@ namespace WrongthinkUtils {
 
   void validateDatabase() {
     // assume that the wrongthink database & user have already been created (manually)
-    soci::session sql(soci::postgresql, "host=localhost dbname=" + dbName_ + " user=" + dbUname_ + " password=" + dbPass_);
+    soci::session sql(*dbType_, dbConnectString_);
     // create tables if they don't already exist
     // create users table
     sql << "create table if not exists users ("
