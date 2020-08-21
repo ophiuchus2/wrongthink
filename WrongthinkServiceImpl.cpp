@@ -17,6 +17,38 @@ If not, see <https://www.gnu.org/licenses/>.
 */
 #include "WrongthinkServiceImpl.h"
 
+/* needed to make the rpc function testable */
+Status WrongthinkServiceImpl::GetWrongthinkCommunitiesImpl(const GetWrongthinkCommunitiesRequest* request,
+  ServerWriterWrapper<WrongthinkCommunity>* writer) {
+  try {
+    // not using request data yet
+    (void)request;
+    soci::session sql = WrongthinkUtils::getSociSession();
+    rowset<row> rs = (sql.prepare << "select community_id, name"
+                                  << " from communities ");
+    for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
+      WrongthinkCommunity community;
+      row const& row = *it;
+      community.set_communityid(row.get<int>(0));
+      community.set_name(row.get<std::string>(1));
+      writer->Write(community);
+    }
+  } catch (const std::exception& e) {
+    std::cout << e.what() << std::endl;
+    return Status(StatusCode::INTERNAL, "");
+  }
+  return Status::OK;
+}
+
+/* needed to make the rpc function testable */
+Status WrongthinkServiceImpl::GetWrongthinkCommunities(ServerContext* context,
+  const GetWrongthinkCommunitiesRequest* request,
+  ServerWriter<WrongthinkCommunity>* writer) {
+    (void)context;
+    ServerWriterWrapper<WrongthinkCommunity> wrapper(writer);
+    return GetWrongthinkCommunitiesImpl(request, &wrapper);
+}
+
 Status WrongthinkServiceImpl::GetWrongthinkChannels(ServerContext* context,
   const GetWrongthinkChannelsRequest* request,
   ServerWriter<WrongthinkChannel>* writer) {

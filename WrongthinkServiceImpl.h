@@ -95,6 +95,15 @@ public:
     ServerWriter<WrongthinkChannel>* writer) override;
 
   /* needed to make the rpc function testable */
+  Status GetWrongthinkCommunitiesImpl(const GetWrongthinkCommunitiesRequest* request,
+    ServerWriterWrapper<WrongthinkCommunity>* writer);
+
+  /* needed to make the rpc function testable */
+  Status GetWrongthinkCommunities(ServerContext* context,
+    const GetWrongthinkCommunitiesRequest* request,
+    ServerWriter<WrongthinkCommunity>* writer) override;
+
+  /* needed to make the rpc function testable */
   Status GetWrongthinkChannelsImpl(const GetWrongthinkChannelsRequest* request,
     ServerWriterWrapper<WrongthinkChannel>* writer);
 
