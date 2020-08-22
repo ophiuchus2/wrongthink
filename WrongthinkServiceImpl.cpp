@@ -24,13 +24,15 @@ Status WrongthinkServiceImpl::GetWrongthinkCommunitiesImpl(const GetWrongthinkCo
     // not using request data yet
     (void)request;
     soci::session sql = WrongthinkUtils::getSociSession();
-    rowset<row> rs = (sql.prepare << "select community_id, name"
-                                  << " from communities ");
+    rowset<row> rs = (sql.prepare << "select * from communities "
+                                  << "inner join users on "
+                                  << "communities.admin=users.user_id");
     for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
       WrongthinkCommunity community;
       row const& row = *it;
       community.set_communityid(row.get<int>(0));
       community.set_name(row.get<std::string>(1));
+      community.set_unameadmin(row.get<std::string>(5));
       writer->Write(community);
     }
   } catch (const std::exception& e) {
@@ -64,7 +66,8 @@ Status WrongthinkServiceImpl::GetWrongthinkChannelsImpl(const GetWrongthinkChann
     soci::session sql = WrongthinkUtils::getSociSession();
     rowset<row> rs = (sql.prepare << "select channel_id, name, "
                                   << "allow_anon from channels "
-                                  << "where community = :community",
+                                  << "where community = :community inner join "
+                                  << "users on channels.admin=users.user_id",
                                   use(community));
     for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
       WrongthinkChannel channel;
@@ -73,6 +76,7 @@ Status WrongthinkServiceImpl::GetWrongthinkChannelsImpl(const GetWrongthinkChann
       channel.set_name(row.get<std::string>(1));
       channel.set_anonymous(row.get<int>(2));
       channel.set_communityid(community);
+      channel.set_unameadmin(row.get<std::string>(6));
       writer->Write(channel);
     }
   } catch (const std::exception& e) {
