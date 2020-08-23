@@ -64,10 +64,9 @@ Status WrongthinkServiceImpl::GetWrongthinkChannelsImpl(const GetWrongthinkChann
   try {
     int community = request->communityid();
     soci::session sql = WrongthinkUtils::getSociSession();
-    rowset<row> rs = (sql.prepare << "select channel_id, name, "
-                                  << "allow_anon from channels "
-                                  << "where community = :community inner join "
-                                  << "users on channels.admin=users.user_id",
+    rowset<row> rs = (sql.prepare << "select * from channels "
+                                  << "inner join users on channels.admin=users.user_id "
+                                  << "where community=:community order by channels.channel_id",
                                   use(community));
     for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
       WrongthinkChannel channel;
@@ -247,6 +246,7 @@ Status WrongthinkServiceImpl::CreateUser(ServerContext* context, const CreateUse
           use(uname), use(password), use(admin);
     sql << "select user_id from users where uname = :uname", use(uname), into(uid);
     response->set_userid(uid);
+    response->set_uname(request->uname());
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
     return Status(StatusCode::INTERNAL, "");
