@@ -101,7 +101,6 @@ namespace {
       return st;
     }
 
-
     WrongthinkServiceImpl service;
     std::vector<WrongthinkUser> users;
     std::vector<WrongthinkCommunity> communities;

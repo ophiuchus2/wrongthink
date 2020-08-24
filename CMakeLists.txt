@@ -15,6 +15,7 @@ set(WITH_MYSQL OFF)
 set(WITH_ODBC OFF)
 set(WITH_ORACLE OFF)
 set(WITH_POSTGRESQL ON)
+set(WITH_SQLITE3 ON)
 
 #set(SOCI_DIR "third_party/soci/cmake")
 
@@ -143,6 +144,7 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
 configure_file(third_party/soci/include/soci/soci.h ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(third_party/soci/include/soci/postgresql/soci-postgresql.h ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+configure_file(third_party/soci/include/soci/sqlite3/soci-sqlite3.h ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
 add_executable(wrongthink "wrongthink.cpp"
   "SynchronizedChannel.cpp"
@@ -157,6 +159,7 @@ target_link_libraries(wrongthink
   ${_PROTOBUF_LIBPROTOBUF}
   soci_core
   soci_postgresql
+  soci_sqlite3
   pq)
 
 add_executable(test_client "test_client.cpp"
@@ -183,6 +186,7 @@ target_link_libraries(tests
   ${_PROTOBUF_LIBPROTOBUF}
   soci_core
   soci_postgresql
+  soci_sqlite3
   pq)
 
 target_include_directories(tests PUBLIC
