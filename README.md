@@ -6,7 +6,8 @@ Meant to be a real time chat application, with features similar to discord (a cl
 ## Project files
 
 * `wrongthink.cpp` - server implementation
-* `test_client.cpp` - test showing a simple gRPC client implemented in c++
+* `test/` - contains all unit tests
+* `test_client.cpp` - test showing a simple gRPC client implemented in c++, *now depricated in favor of unit tests*
 * `protocol/proto/wrongthink.proto` - protobuf datatype & RPC service definintions
 
 ## Building
@@ -16,6 +17,7 @@ Meant to be a real time chat application, with features similar to discord (a cl
 * [gRPC](https://github.com/grpc/grpc) - gRPC is a modern, open source, high-performance remote procedure call (RPC) framework that can run anywhere
 * [SOCI](https://github.com/SOCI/soci) - C++ Database Access Library
 * [uWebsockets](https://github.com/uNetworking/uWebSockets) - Simple, secure & standards compliant web server for the most demanding of applications
+* [googletest](https://github.com/google/googletest) - Google Testing and Mocking Framework
 
 ### Prerequisites
 
@@ -81,7 +83,8 @@ make
 You should see the following files produced during the build:
 
 * `wrongthink` - server binary
-* `test_client` - client binary
+* ~~`test_client` - client binary~~, depricated in favor of unit tests
+* `tests` - unit test binary
 * `wrongthink.grpc*` - grpc generated files
   * these include the c++ classes used for client/server communication
 * `wrongthink.pb*` - protobuf generated files
@@ -99,6 +102,8 @@ Server listening on 0.0.0.0:50051
 
 **Client output**
 
+*note: the client has not been updated for some time and is now depricated*
+
 ```
 ./test_client
 got channel: channel 1
@@ -107,6 +112,14 @@ got channel: channel 3
 ```
 
 The client creates 3 channels on the server, then retrieves them & prints their names to the console.
+
+## Running tests
+
+Simply execute the `tests` binary after a successful build. The tests use these default DB connection settings:
+
+```
+WrongthinkUtils::setupPostgres("wrongthink", "test", "testdb");
+```
 
 ## Features
 
