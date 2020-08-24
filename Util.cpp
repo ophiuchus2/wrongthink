@@ -18,9 +18,6 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "Util.h"
 
 namespace WrongthinkUtils {
-  std::string dbUname_;
-  std::string dbPass_;
-  std::string dbName_;
   std::string dbConnectString_;
   soci::backend_factory const *dbType_;
 
