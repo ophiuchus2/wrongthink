@@ -17,6 +17,40 @@ If not, see <https://www.gnu.org/licenses/>.
 */
 #include "WrongthinkServiceImpl.h"
 
+/* needed to make the rpc function testable */
+Status WrongthinkServiceImpl::GetWrongthinkCommunitiesImpl(const GetWrongthinkCommunitiesRequest* request,
+  ServerWriterWrapper<WrongthinkCommunity>* writer) {
+  try {
+    // not using request data yet
+    (void)request;
+    soci::session sql = WrongthinkUtils::getSociSession();
+    rowset<row> rs = (sql.prepare << "select * from communities "
+                                  << "inner join users on "
+                                  << "communities.admin=users.user_id");
+    for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
+      WrongthinkCommunity community;
+      row const& row = *it;
+      community.set_communityid(row.get<int>(0));
+      community.set_name(row.get<std::string>(1));
+      community.set_unameadmin(row.get<std::string>(5));
+      writer->Write(community);
+    }
+  } catch (const std::exception& e) {
+    std::cout << e.what() << std::endl;
+    return Status(StatusCode::INTERNAL, "");
+  }
+  return Status::OK;
+}
+
+/* needed to make the rpc function testable */
+Status WrongthinkServiceImpl::GetWrongthinkCommunities(ServerContext* context,
+  const GetWrongthinkCommunitiesRequest* request,
+  ServerWriter<WrongthinkCommunity>* writer) {
+    (void)context;
+    ServerWriterWrapper<WrongthinkCommunity> wrapper(writer);
+    return GetWrongthinkCommunitiesImpl(request, &wrapper);
+}
+
 Status WrongthinkServiceImpl::GetWrongthinkChannels(ServerContext* context,
   const GetWrongthinkChannelsRequest* request,
   ServerWriter<WrongthinkChannel>* writer) {
@@ -30,9 +64,9 @@ Status WrongthinkServiceImpl::GetWrongthinkChannelsImpl(const GetWrongthinkChann
   try {
     int community = request->communityid();
     soci::session sql = WrongthinkUtils::getSociSession();
-    rowset<row> rs = (sql.prepare << "select channel_id, name, "
-                                  << "allow_anon from channels "
-                                  << "where community = :community",
+    rowset<row> rs = (sql.prepare << "select * from channels "
+                                  << "inner join users on channels.admin=users.user_id "
+                                  << "where community=:community order by channels.channel_id",
                                   use(community));
     for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
       WrongthinkChannel channel;
@@ -41,6 +75,7 @@ Status WrongthinkServiceImpl::GetWrongthinkChannelsImpl(const GetWrongthinkChann
       channel.set_name(row.get<std::string>(1));
       channel.set_anonymous(row.get<int>(2));
       channel.set_communityid(community);
+      channel.set_unameadmin(row.get<std::string>(6));
       writer->Write(channel);
     }
   } catch (const std::exception& e) {
@@ -211,6 +246,7 @@ Status WrongthinkServiceImpl::CreateUser(ServerContext* context, const CreateUse
           use(uname), use(password), use(admin);
     sql << "select user_id from users where uname = :uname", use(uname), into(uid);
     response->set_userid(uid);
+    response->set_uname(request->uname());
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
     return Status(StatusCode::INTERNAL, "");
