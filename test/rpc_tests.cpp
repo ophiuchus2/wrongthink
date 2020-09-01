@@ -279,7 +279,74 @@ namespace {
     std::vector<WrongthinkMessage>& msgList1 = getMessageWrapper.getObjList();
 
     //expecting two messages
-    EXPECT_EQ(msgList.size(), 2);
+    EXPECT_EQ(msgList1.size(), 2);
+
+    WrongthinkMessage rMsg1 = msgList1[0];
+    WrongthinkMessage rMsg2 = msgList1[1];
+
+    EXPECT_EQ(rMsg1.uname(), uresp.uname());
+    //EXPECT_EQ(rMsg1.channelname(), "channel 1");
+    EXPECT_EQ(rMsg1.channelid(), chresp.channelid());
+    EXPECT_EQ(rMsg1.userid(), uresp.userid());
+    EXPECT_EQ(rMsg1.text(), "msg2");
+
+    EXPECT_EQ(rMsg2.uname(), uresp.uname());
+    //EXPECT_EQ(rMsg1.channelname(), "channel 1");
+    EXPECT_EQ(rMsg2.channelid(), chresp.channelid());
+    EXPECT_EQ(rMsg2.userid(), uresp.userid());
+    EXPECT_EQ(rMsg2.text(), "msg1");
+  }
+
+  TEST_F(RpcSuiteTest, TestMessageWeb) {
+    // create dummy user
+    WrongthinkUser uresp;
+    Status st = setupUser(uresp, nullptr);
+    ASSERT_TRUE(st.ok());
+
+    // create dummy community
+    WrongthinkCommunity cresp;
+    st = setupCommunity(cresp, nullptr);
+    ASSERT_TRUE(st.ok());
+    EXPECT_NE(cresp.communityid(), 0);
+
+    // create dummy channel
+    WrongthinkChannel chresp;
+    st = setupChannel(chresp, nullptr);
+    ASSERT_TRUE(st.ok());
+    EXPECT_NE(chresp.channelid(), 0);
+
+    // send message test
+    WrongthinkMessage msg1, msg2;
+    msg1.set_uname(uresp.uname());
+    msg1.set_channelname(chresp.name());
+    msg1.set_channelid(chresp.channelid());
+    msg1.set_userid(uresp.userid());
+    msg1.set_text("msg1");
+
+    msg2.set_uname(uresp.uname());
+    msg2.set_channelname(chresp.name());
+    msg2.set_channelid(chresp.channelid());
+    msg2.set_userid(uresp.userid());
+    msg2.set_text("msg2");
+
+    st = service.SendWrongthinkMessageWeb(nullptr, &msg1, nullptr);
+    ASSERT_TRUE(st.ok());
+
+    st = service.SendWrongthinkMessageWeb(nullptr, &msg2, nullptr);
+    ASSERT_TRUE(st.ok());
+
+    // get message test
+    ServerWriterWrapper< WrongthinkMessage> getMessageWrapper;
+    GetWrongthinkMessagesRequest getMsgReq;
+
+    getMsgReq.set_channelid(chresp.channelid());
+    st = service.GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
+    ASSERT_TRUE(st.ok());
+
+    std::vector<WrongthinkMessage>& msgList1 = getMessageWrapper.getObjList();
+
+    //expecting two messages
+    EXPECT_EQ(msgList1.size(), 2);
 
     WrongthinkMessage rMsg1 = msgList1[0];
     WrongthinkMessage rMsg2 = msgList1[1];

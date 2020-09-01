@@ -115,6 +115,9 @@ public:
     const CreateWrongthinkCommunityRequest* request,
     WrongthinkCommunity* response) override;
 
+  Status SendWrongthinkMessageWeb(ServerContext* context,
+    const WrongthinkMessage* request, WrongthinkMeta* response) override;
+
   Status SendWrongthinkMessage(ServerContext* context,
     ServerReader< WrongthinkMessage>* reader, WrongthinkMeta* response) override;
 

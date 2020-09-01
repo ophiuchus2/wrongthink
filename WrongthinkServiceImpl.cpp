@@ -129,6 +129,29 @@ Status WrongthinkServiceImpl::CreateWrongthinkCommunity(ServerContext* context,
   return Status::OK;
 }
 
+Status WrongthinkServiceImpl::SendWrongthinkMessageWeb(ServerContext* context,
+  const WrongthinkMessage* msg, WrongthinkMeta* response) {
+  try {
+    int channelid = msg->channelid();
+    int user_id = msg->userid();
+    int thread_id = msg->threadid();
+    int thread_child = msg->threadchild();
+    std::string text = msg->text();
+    soci::session sql = WrongthinkUtils::getSociSession();
+    if(!checkForChannel(msg->channelid(), sql))
+      return Status(StatusCode::INVALID_ARGUMENT, "");
+    channelMap[msg->channelid()].appendMessage(*msg);
+    sql << "insert into message(user_id,channel,thread_id,thread_child, mtext)"
+        << " values(:user_id,:channel,:thread_id,:thread_child,:text)",
+        use(user_id), use(channelid), use(thread_id), use(thread_child),
+        use(text);
+  } catch (const std::exception& e) {
+    std::cout << e.what() << std::endl;
+    return Status(StatusCode::INTERNAL, "");
+  }
+  return Status::OK;
+}
+
 Status WrongthinkServiceImpl::SendWrongthinkMessage(ServerContext* context,
   ServerReader< WrongthinkMessage>* reader, WrongthinkMeta* response) {
   (void) context;
