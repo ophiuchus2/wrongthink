@@ -64,6 +64,11 @@ int main(int argc, char** argv) {
     if( argc == 2 && strcmp(argv[1], "sqlite") == 0 ) {
       std::cout << "Using sqlite backend" << std::endl;
       WrongthinkUtils::setupSqlite("testdb.sqlite");
+    } else if (argc == 2 && strcmp(argv[1], "clear") == 0) {
+      std::cout << "Using postgres backend" << std::endl;
+      WrongthinkUtils::setupPostgres("wrongthink", "test", "wrongthink");
+      std::cout << "Clearing DB..." << std::endl;
+      WrongthinkUtils::clearDatabase();
     } else {
       std::cout << "Using postgres backend" << std::endl;
       WrongthinkUtils::setupPostgres("wrongthink", "test", "wrongthink");
