@@ -248,6 +248,7 @@ Status WrongthinkServiceImpl::GetWrongthinkMessagesImpl(const GetWrongthinkMessa
       msg.set_text(row.get<std::string>("mtext"));
       std::tm tm = row.get<std::tm>("mdate");
       msg.set_date(mktime(&tm));
+      msg.set_messageid(row.get<int>("msg_id"));
       writer->Write(msg);
     }
   } catch (const std::exception& e) {
@@ -270,6 +271,7 @@ Status WrongthinkServiceImpl::CreateUser(ServerContext* context, const CreateUse
     sql << "select user_id from users where uname = :uname", use(uname), into(uid);
     response->set_userid(uid);
     response->set_uname(request->uname());
+    response->set_admin(admin);
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
     return Status(StatusCode::INTERNAL, "");
