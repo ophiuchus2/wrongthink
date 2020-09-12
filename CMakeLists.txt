@@ -148,8 +148,10 @@ configure_file(third_party/soci/include/soci/sqlite3/soci-sqlite3.h ${CMAKE_CURR
 
 add_executable(wrongthink "wrongthink.cpp"
   "SynchronizedChannel.cpp"
-  "Util.cpp"
   "WrongthinkServiceImpl.cpp"
+  "DB/DBInterface.cpp"
+  "DB/DBPostgres.cpp"
+  "DB/DBSQLite.cpp"
   ${wt_proto_srcs}
   ${wt_grpc_srcs})
 
@@ -174,8 +176,10 @@ target_link_libraries(test_client
 # build tests
 add_executable(tests "test/rpc_tests.cpp"
   "SynchronizedChannel.cpp"
-  "Util.cpp"
   "WrongthinkServiceImpl.cpp"
+  "DB/DBInterface.cpp"
+  "DB/DBPostgres.cpp"
+  "DB/DBSQLite.cpp"
   ${wt_proto_srcs}
   ${wt_grpc_srcs})
 
