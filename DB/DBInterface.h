@@ -15,24 +15,24 @@ See the GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License along with this program.
 If not, see <https://www.gnu.org/licenses/>.
 */
-#include <string>
-#include "soci.h"
-#include "soci-postgresql.h"
-#include "soci-sqlite3.h"
+#ifndef DB_INTERFACE_H
+#define DB_INTERFACE_H
 
-namespace WrongthinkUtils {
-  /**
-  * @brief sets the database credentials, should only be called once from the
-  * main thread at initialization.
-  * @param [in] user db username.
-  * @param [in] pass db user password.
-  */
-  void setupPostgres(const std::string& user, const std::string& pass,
-    const std::string& dbname);
-  void setupSqlite(const std::string &dbname);
+#include "soci.h"
+
+class DBInterface {
+public:
+  virtual ~DBInterface();
+
+  virtual void validate() = 0;
+  virtual void clear() = 0;
   soci::session getSociSession();
-  void validateDatabase();
-  void clearDatabase();
-  extern soci::backend_factory const *dbType_;
-  extern std::string dbConnectString_;
-}
+
+protected:
+  DBInterface( const soci::backend_factory &backend, std::string conString );
+
+  const soci::backend_factory &dbType_;
+  std::string dbConnectString_;
+};
+
+#endif // DB_INTERFACE_H

@@ -18,10 +18,11 @@ If not, see <https://www.gnu.org/licenses/>.
 #include <grpcpp/grpcpp.h>
 
 #include "wrongthink.grpc.pb.h"
-#include "Util.h"
 #include "SynchronizedChannel.h"
+#include "DB/DBInterface.h"
 #include <vector>
 #include <ctime>
+#include <memory>
 
 // grpc using statements
 using grpc::Server;
@@ -90,6 +91,8 @@ private:
 
 class WrongthinkServiceImpl final : public wrongthink::Service {
 public:
+  WrongthinkServiceImpl( std::shared_ptr<DBInterface> db );
+
   Status GetWrongthinkChannels(ServerContext* context,
     const GetWrongthinkChannelsRequest* request,
     ServerWriter<WrongthinkChannel>* writer) override;
@@ -148,4 +151,6 @@ private:
 
   std::map<int, SynchronizedChannel> channelMap;
   std::mutex channelMapMutex;
+
+  std::shared_ptr<DBInterface> db;
 };

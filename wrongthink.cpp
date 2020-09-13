@@ -27,13 +27,16 @@ If not, see <https://www.gnu.org/licenses/>.
 //#include <grpcpp/health_check_service_interface.h>
 #include "WrongthinkConfig.h"
 
-#include "Util.h"
-
 #include "WrongthinkServiceImpl.h"
+
+#include "DB/DBInterface.h"
+#include "DB/DBPostgres.h"
+
+static std::shared_ptr<DBInterface> db;
 
 void RunServer() {
   std::string server_address("0.0.0.0:50051");
-  WrongthinkServiceImpl service;
+  WrongthinkServiceImpl service( db );
 
   grpc::EnableDefaultHealthCheckService(false);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
@@ -63,20 +66,20 @@ int main(int argc, char** argv) {
 
     if( argc == 2 && strcmp(argv[1], "sqlite") == 0 ) {
       std::cout << "Using sqlite backend" << std::endl;
-      WrongthinkUtils::setupSqlite("testdb.sqlite");
-    } else if (argc == 2 && strcmp(argv[1], "clear") == 0) {
-      std::cout << "Using postgres backend" << std::endl;
-      WrongthinkUtils::setupPostgres("wrongthink", "test", "wrongthink");
-      std::cout << "Clearing DB..." << std::endl;
-      WrongthinkUtils::clearDatabase();
+      std::cout << "Not currently implemented" << std::endl;
+      return 1;
     } else {
       std::cout << "Using postgres backend" << std::endl;
-      WrongthinkUtils::setupPostgres("wrongthink", "test", "wrongthink");
+      db = std::make_shared<DBPostgres>("wrongthink", "test", "wrongthink");
+    }
+
+    if (argc == 2 && strcmp(argv[1], "clear") == 0) {
+      db->clear();
     }
 
     std::cout << "validating sql tables." << std::endl;
 
-    WrongthinkUtils::validateDatabase();
+    db->validate();
   }
   catch (const std::exception& e) {
     // unexpecdted, terminate

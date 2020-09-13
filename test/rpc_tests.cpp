@@ -17,11 +17,11 @@ If not, see <https://www.gnu.org/licenses/>.
 */
 #include "gtest/gtest.h"
 #include "WrongthinkServiceImpl.h"
-#include "Util.h"
 #include <grpcpp/grpcpp.h>
 #include "wrongthink.grpc.pb.h"
 #include <vector>
 #include <iostream>
+#include "DB/DBPostgres.h"
 
 // grpc using statements
 using grpc::Server;
@@ -47,13 +47,14 @@ namespace {
   class RpcSuiteTest : public ::testing::Test {
   protected:
     void SetUp() override {
-      WrongthinkUtils::setupPostgres("wrongthink", "test", "testdb");
-      WrongthinkUtils::clearDatabase();
-      WrongthinkUtils::validateDatabase();
+      db = std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" );
+      db->clear();
+      db->validate();
+      service = std::make_shared<WrongthinkServiceImpl>(db);
     }
 
     void TearDown() override {
-      WrongthinkUtils::clearDatabase();
+      db->clear();
     }
 
     Status setupUser(WrongthinkUser& uresp, CreateUserRequest* req) {
@@ -62,7 +63,7 @@ namespace {
       ureq.set_uname("user1");
       ureq.set_password("upass");
       ureq.set_admin(true);
-      Status st = service.CreateUser(nullptr, (req) ? req : &ureq, &uresp);
+      Status st = service->CreateUser(nullptr, (req) ? req : &ureq, &uresp);
       if (st.ok())
         users.push_back(uresp);
       return st;
@@ -77,7 +78,7 @@ namespace {
       mc.set_adminid(users[0].userid());
       mc.set_public_(true);
 
-      Status st = service.CreateWrongthinkCommunity(nullptr, (req) ? req : &mc,
+      Status st = service->CreateWrongthinkCommunity(nullptr, (req) ? req : &mc,
         &communityResp);
       if (st.ok())
         communities.push_back(communityResp);
@@ -94,14 +95,15 @@ namespace {
       mch.set_anonymous(true);
       mch.set_adminid(users[0].userid());
 
-      Status st = service.CreateWrongthinkChannel(nullptr,
+      Status st = service->CreateWrongthinkChannel(nullptr,
                         (req) ? req : &mch, &resp);
       if (st.ok())
         channels.push_back(resp);
       return st;
     }
 
-    WrongthinkServiceImpl service;
+    std::shared_ptr<DBInterface> db;
+    std::shared_ptr<WrongthinkServiceImpl> service;
     std::vector<WrongthinkUser> users;
     std::vector<WrongthinkCommunity> communities;
     std::vector<WrongthinkChannel> channels;
@@ -153,7 +155,7 @@ namespace {
     }
 
     ServerWriterWrapper<WrongthinkCommunity> wrapper;
-    st = service.GetWrongthinkCommunitiesImpl(nullptr, &wrapper);
+    st = service->GetWrongthinkCommunitiesImpl(nullptr, &wrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkCommunity>& objList = wrapper.getObjList();
@@ -216,7 +218,7 @@ namespace {
     ServerWriterWrapper<WrongthinkChannel> wrapper;
 
     req.set_communityid(cresp.communityid());
-    st = service.GetWrongthinkChannelsImpl(&req, &wrapper);
+    st = service->GetWrongthinkChannelsImpl(&req, &wrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkChannel>& objList = wrapper.getObjList();
@@ -265,7 +267,7 @@ namespace {
     msgList.push_back(msg1);
     msgList.push_back(msg2);
 
-    st = service.SendWrongthinkMessageImpl(&sendWrapper, nullptr);
+    st = service->SendWrongthinkMessageImpl(&sendWrapper, nullptr);
     ASSERT_TRUE(st.ok());
 
     // get message test
@@ -273,7 +275,7 @@ namespace {
     GetWrongthinkMessagesRequest getMsgReq;
 
     getMsgReq.set_channelid(chresp.channelid());
-    st = service.GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
+    st = service->GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkMessage>& msgList1 = getMessageWrapper.getObjList();
@@ -329,10 +331,10 @@ namespace {
     msg2.set_userid(uresp.userid());
     msg2.set_text("msg2");
 
-    st = service.SendWrongthinkMessageWeb(nullptr, &msg1, nullptr);
+    st = service->SendWrongthinkMessageWeb(nullptr, &msg1, nullptr);
     ASSERT_TRUE(st.ok());
 
-    st = service.SendWrongthinkMessageWeb(nullptr, &msg2, nullptr);
+    st = service->SendWrongthinkMessageWeb(nullptr, &msg2, nullptr);
     ASSERT_TRUE(st.ok());
 
     // get message test
@@ -340,7 +342,7 @@ namespace {
     GetWrongthinkMessagesRequest getMsgReq;
 
     getMsgReq.set_channelid(chresp.channelid());
-    st = service.GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
+    st = service->GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkMessage>& msgList1 = getMessageWrapper.getObjList();

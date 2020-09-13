@@ -17,13 +17,19 @@ If not, see <https://www.gnu.org/licenses/>.
 */
 #include "WrongthinkServiceImpl.h"
 
+WrongthinkServiceImpl::WrongthinkServiceImpl( const std::shared_ptr<DBInterface> db ) :
+  db{ db }
+{
+}
+
+
 /* needed to make the rpc function testable */
 Status WrongthinkServiceImpl::GetWrongthinkCommunitiesImpl(const GetWrongthinkCommunitiesRequest* request,
   ServerWriterWrapper<WrongthinkCommunity>* writer) {
   try {
     // not using request data yet
     (void)request;
-    soci::session sql = WrongthinkUtils::getSociSession();
+    soci::session sql = db->getSociSession();
     rowset<row> rs = (sql.prepare << "select * from communities "
                                   << "inner join users on "
                                   << "communities.admin=users.user_id");
@@ -63,7 +69,7 @@ Status WrongthinkServiceImpl::GetWrongthinkChannelsImpl(const GetWrongthinkChann
   ServerWriterWrapper<WrongthinkChannel>* writer) {
   try {
     int community = request->communityid();
-    soci::session sql = WrongthinkUtils::getSociSession();
+    soci::session sql = db->getSociSession();
     rowset<row> rs = (sql.prepare << "select * from channels "
                                   << "inner join users on channels.admin=users.user_id "
                                   << "where community=:community order by channels.channel_id",
@@ -94,7 +100,7 @@ Status WrongthinkServiceImpl::CreateWrongthinkChannel(ServerContext* context,
     int anonymous = request->anonymous();
     std::string name = request->name();
     int admin = request->adminid();
-    soci::session sql = WrongthinkUtils::getSociSession();
+    soci::session sql = db->getSociSession();
     sql << "insert into channels(name, "
         << "community, admin, allow_anon) "
         << "values(:name,:community,:admin,:anonymous)",
@@ -116,7 +122,7 @@ Status WrongthinkServiceImpl::CreateWrongthinkCommunity(ServerContext* context,
     std::string name = request->name();
     int admin = request->adminid();
     int pub = request->public_();
-    soci::session sql = WrongthinkUtils::getSociSession();
+    soci::session sql = db->getSociSession();
     sql << "insert into communities (name, admin, public) "
         << "values(:name,:admin,:public)", use(name), use(admin), use(pub);
     sql << "select community_id from communities where name = :name",
@@ -137,7 +143,7 @@ Status WrongthinkServiceImpl::SendWrongthinkMessageWeb(ServerContext* context,
     int thread_id = msg->threadid();
     int thread_child = msg->threadchild();
     std::string text = msg->text();
-    soci::session sql = WrongthinkUtils::getSociSession();
+    soci::session sql = db->getSociSession();
     if(!checkForChannel(msg->channelid(), sql))
       return Status(StatusCode::INVALID_ARGUMENT, "");
     channelMap[msg->channelid()].appendMessage(*msg);
@@ -164,7 +170,7 @@ Status WrongthinkServiceImpl::SendWrongthinkMessageImpl(ServerReaderWrapper< Wro
   (void) response;
   WrongthinkMessage msg;
   try {
-    soci::session sql = WrongthinkUtils::getSociSession();
+    soci::session sql = db->getSociSession();
     int channelid = 0;
     int user_id = 0;
     int thread_id = 0;
@@ -204,7 +210,7 @@ Status WrongthinkServiceImpl::ListenWrongthinkMessages(ServerContext* context,
 /* needed to make the rpc function testable */
 Status WrongthinkServiceImpl::ListenWrongthinkMessagesImpl(const ListenWrongthinkMessagesRequest* request,
   ServerWriterWrapper< WrongthinkMessage>* writer) {
-  soci::session sql = WrongthinkUtils::getSociSession();
+  soci::session sql = db->getSociSession();
   int channelid = request->channelid();
   int count = 0;
   if (!checkForChannel(channelid, sql))
@@ -232,7 +238,7 @@ Status WrongthinkServiceImpl::GetWrongthinkMessagesImpl(const GetWrongthinkMessa
   int afterid = request->afterid();
   int afterdate = request->afterdate();
   try {
-    soci::session sql = WrongthinkUtils::getSociSession();
+    soci::session sql = db->getSociSession();
     rowset<row> rs = (sql.prepare << "select * from message inner join users on "
                 << "message.user_id = users.user_id where "
                 << "message.channel = :channelid", use(channelid));
@@ -265,7 +271,7 @@ Status WrongthinkServiceImpl::CreateUser(ServerContext* context, const CreateUse
     std::string password = request->password();
     int admin = request->admin();
     int uid = 0;
-    soci::session sql = WrongthinkUtils::getSociSession();
+    soci::session sql = db->getSociSession();
     sql << "insert into users (uname,password,admin) values(:uname,:password,:admin)",
           use(uname), use(password), use(admin);
     sql << "select user_id from users where uname = :uname", use(uname), into(uid);
