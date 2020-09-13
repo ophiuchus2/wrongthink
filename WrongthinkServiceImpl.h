@@ -22,6 +22,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "DB/DBInterface.h"
 #include <vector>
 #include <ctime>
+#include <memory>
 
 // grpc using statements
 using grpc::Server;
@@ -90,7 +91,7 @@ private:
 
 class WrongthinkServiceImpl final : public wrongthink::Service {
 public:
-  WrongthinkServiceImpl( DBInterface *db );
+  WrongthinkServiceImpl( std::shared_ptr<DBInterface> db );
 
   Status GetWrongthinkChannels(ServerContext* context,
     const GetWrongthinkChannelsRequest* request,
@@ -151,5 +152,5 @@ private:
   std::map<int, SynchronizedChannel> channelMap;
   std::mutex channelMapMutex;
 
-  DBInterface *db;
+  std::shared_ptr<DBInterface> db;
 };

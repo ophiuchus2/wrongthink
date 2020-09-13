@@ -15,7 +15,8 @@ See the GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License along with this program.
 If not, see <https://www.gnu.org/licenses/>.
 */
-#pragma once
+#ifndef DB_POSTGRES_H
+#define DB_POSTGRES_H
 
 #include "DBInterface.h"
 #include "soci-postgresql.h"
@@ -27,3 +28,5 @@ public:
   virtual void validate() override;
   virtual void clear() override;
 };
+
+#endif // DB_POSTGRES_H

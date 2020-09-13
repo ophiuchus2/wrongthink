@@ -32,7 +32,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "DB/DBInterface.h"
 #include "DB/DBPostgres.h"
 
-static DBInterface *db;
+static std::shared_ptr<DBInterface> db;
 
 void RunServer() {
   std::string server_address("0.0.0.0:50051");
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
       return 1;
     } else {
       std::cout << "Using postgres backend" << std::endl;
-      db = new DBPostgres("wrongthink", "test", "wrongthink");
+      db = std::make_shared<DBPostgres>("wrongthink", "test", "wrongthink");
     }
 
     if (argc == 2 && strcmp(argv[1], "clear") == 0) {
@@ -87,8 +87,6 @@ int main(int argc, char** argv) {
     return 0;
   }
   RunServer();
-
-  delete db;
 
   return 0;
 }

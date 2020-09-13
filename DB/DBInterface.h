@@ -15,7 +15,8 @@ See the GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License along with this program.
 If not, see <https://www.gnu.org/licenses/>.
 */
-#pragma once
+#ifndef DB_INTERFACE_H
+#define DB_INTERFACE_H
 
 #include "soci.h"
 
@@ -28,8 +29,10 @@ public:
   soci::session getSociSession();
 
 protected:
-  DBInterface( const soci::backend_factory *backend, std::string conString );
+  DBInterface( const soci::backend_factory &backend, std::string conString );
 
-  const soci::backend_factory * const dbType_;
+  const soci::backend_factory &dbType_;
   std::string dbConnectString_;
 };
+
+#endif // DB_INTERFACE_H

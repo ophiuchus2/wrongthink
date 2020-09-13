@@ -47,16 +47,14 @@ namespace {
   class RpcSuiteTest : public ::testing::Test {
   protected:
     void SetUp() override {
-      db = new DBPostgres( "wrongthink", "test", "testdb" );
+      db = std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" );
       db->clear();
       db->validate();
-      service = new WrongthinkServiceImpl( db );
+      service = std::make_shared<WrongthinkServiceImpl>(db);
     }
 
     void TearDown() override {
       db->clear();
-      delete db;
-      delete service;
     }
 
     Status setupUser(WrongthinkUser& uresp, CreateUserRequest* req) {
@@ -104,8 +102,8 @@ namespace {
       return st;
     }
 
-    DBInterface *db;
-    WrongthinkServiceImpl *service;
+    std::shared_ptr<DBInterface> db;
+    std::shared_ptr<WrongthinkServiceImpl> service;
     std::vector<WrongthinkUser> users;
     std::vector<WrongthinkCommunity> communities;
     std::vector<WrongthinkChannel> channels;

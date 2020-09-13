@@ -18,7 +18,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "DBPostgres.h"
 
 DBPostgres::DBPostgres(const std::string &user, const std::string &pass, const std::string &dbName) :
-  DBInterface(&soci::postgresql, "host=localhost dbname=" + dbName + " user=" + user + " password=" + pass)
+  DBInterface(soci::postgresql, "host=localhost dbname=" + dbName + " user=" + user + " password=" + pass)
 {
 }
 

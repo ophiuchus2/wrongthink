@@ -17,7 +17,7 @@ If not, see <https://www.gnu.org/licenses/>.
 */
 #include "WrongthinkServiceImpl.h"
 
-WrongthinkServiceImpl::WrongthinkServiceImpl( DBInterface *db ) :
+WrongthinkServiceImpl::WrongthinkServiceImpl( const std::shared_ptr<DBInterface> db ) :
   db{ db }
 {
 }

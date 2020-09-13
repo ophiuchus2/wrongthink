@@ -17,13 +17,13 @@ If not, see <https://www.gnu.org/licenses/>.
 */
 #include "DBInterface.h"
 
-DBInterface::DBInterface( const soci::backend_factory *backend, const std::string conString ) :
+DBInterface::DBInterface( const soci::backend_factory &backend, const std::string conString ) :
   dbType_{backend}, dbConnectString_{conString}
 {
 };
 
 soci::session DBInterface::getSociSession() {
-  return soci::session(*dbType_, dbConnectString_);
+  return soci::session(dbType_, dbConnectString_);
 }
 
 DBInterface::~DBInterface(){

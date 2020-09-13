@@ -15,9 +15,12 @@ See the GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License along with this program.
 If not, see <https://www.gnu.org/licenses/>.
 */
-#pragma once
+#ifndef DB_SQLITE_H
+#define DB_SQLITE_H
 
 #include "DBInterface.h"
 
 class SQLiteDB : public DBInterface {
 };
+
+#endif // DB_SQLITE_H
