@@ -69,7 +69,7 @@ void DBPostgres::validate() {
           "thread_child   boolean not null default false,"
           "edited         boolean default false,"
           "mtext          text not null,"
-          "mdate          date not null default now())";
+          "mdate          timestamp with time zone not null default clock_timestamp())";
 
   // create control message table
   sql <<  "create table if not exists control_message ("
@@ -78,5 +78,5 @@ void DBPostgres::validate() {
           "channel        int references channels,"
           "type           varchar(50),"
           "mtext          text not null,"
-          "mdate          date not null default now())";
+          "mdate          timestamp with time zone not null default clock_timestamp())";
 }

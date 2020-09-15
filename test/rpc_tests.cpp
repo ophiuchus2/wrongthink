@@ -290,13 +290,13 @@ namespace {
     //EXPECT_EQ(rMsg1.channelname(), "channel 1");
     EXPECT_EQ(rMsg1.channelid(), chresp.channelid());
     EXPECT_EQ(rMsg1.userid(), uresp.userid());
-    EXPECT_EQ(rMsg1.text(), "msg2");
+    EXPECT_EQ(rMsg1.text(), "msg1");
 
     EXPECT_EQ(rMsg2.uname(), uresp.uname());
     //EXPECT_EQ(rMsg1.channelname(), "channel 1");
     EXPECT_EQ(rMsg2.channelid(), chresp.channelid());
     EXPECT_EQ(rMsg2.userid(), uresp.userid());
-    EXPECT_EQ(rMsg2.text(), "msg1");
+    EXPECT_EQ(rMsg2.text(), "msg2");
   }
 
   TEST_F(RpcSuiteTest, TestMessageWeb) {
@@ -357,13 +357,13 @@ namespace {
     //EXPECT_EQ(rMsg1.channelname(), "channel 1");
     EXPECT_EQ(rMsg1.channelid(), chresp.channelid());
     EXPECT_EQ(rMsg1.userid(), uresp.userid());
-    EXPECT_EQ(rMsg1.text(), "msg2");
+    EXPECT_EQ(rMsg1.text(), "msg1");
 
     EXPECT_EQ(rMsg2.uname(), uresp.uname());
     //EXPECT_EQ(rMsg1.channelname(), "channel 1");
     EXPECT_EQ(rMsg2.channelid(), chresp.channelid());
     EXPECT_EQ(rMsg2.userid(), uresp.userid());
-    EXPECT_EQ(rMsg2.text(), "msg1");
+    EXPECT_EQ(rMsg2.text(), "msg2");
   }
 
 }

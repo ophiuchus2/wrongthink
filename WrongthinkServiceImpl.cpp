@@ -241,7 +241,7 @@ Status WrongthinkServiceImpl::GetWrongthinkMessagesImpl(const GetWrongthinkMessa
     soci::session sql = db->getSociSession();
     rowset<row> rs = (sql.prepare << "select * from message inner join users on "
                 << "message.user_id = users.user_id where "
-                << "message.channel = :channelid", use(channelid));
+                << "message.channel = :channelid order by message.msg_id", use(channelid));
     for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
       row const& row = *it;
       WrongthinkMessage msg;
