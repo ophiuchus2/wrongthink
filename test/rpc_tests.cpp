@@ -110,6 +110,15 @@ namespace {
     WrongthinkUser mUResp;
   };
 
+  TEST_F(RpcSuiteTest, TestGenerateUser) {
+    WrongthinkUser resp;
+    Status st = service->GenerateUser(nullptr, nullptr, &resp);
+    std::cout << "TestGenerateUser: uname: " << resp.uname()
+              << " token: " << resp.token() << std::endl;
+    ASSERT_TRUE(st.ok());
+    EXPECT_NE(resp.userid(), 0);
+  }
+
   TEST_F(RpcSuiteTest, TestCreateUser) {
     WrongthinkUser resp;
     Status st = setupUser(resp, nullptr);

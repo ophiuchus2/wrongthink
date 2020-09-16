@@ -21,6 +21,8 @@ set(WITH_SQLITE3 ON)
 
 find_package(Threads REQUIRED)
 #find_package(SOCI REQUIRED)
+FIND_PACKAGE( Boost 1.73.0 REQUIRED )
+INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
 add_subdirectory(third_party/soci ${CMAKE_CURRENT_BINARY_DIR}/soci EXCLUDE_FROM_ALL)
 
@@ -162,7 +164,8 @@ target_link_libraries(wrongthink
   soci_core
   soci_postgresql
   soci_sqlite3
-  pq)
+  pq
+  ${Boost_LIBRARIES})
 
 add_executable(test_client "test_client.cpp"
   ${wt_proto_srcs}
@@ -191,7 +194,8 @@ target_link_libraries(tests
   soci_core
   soci_postgresql
   soci_sqlite3
-  pq)
+  pq
+  ${Boost_LIBRARIES})
 
 target_include_directories(tests PUBLIC
                            include
@@ -209,6 +213,7 @@ add_test(NAME TestRpc COMMAND tests)
 # include directories
 target_include_directories(wrongthink PUBLIC
                            include
+
                            ${CMAKE_CURRENT_BINARY_DIR}
                            ${CMAKE_CURRENT_BINARY_DIR}/soci/include
                            /usr/local/include/

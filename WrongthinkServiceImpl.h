@@ -93,6 +93,9 @@ class WrongthinkServiceImpl final : public wrongthink::Service {
 public:
   WrongthinkServiceImpl( std::shared_ptr<DBInterface> db );
 
+  Status GenerateUser(ServerContext* context, const GenericRequest* request,
+    WrongthinkUser* response) override;
+
   Status GetWrongthinkChannels(ServerContext* context,
     const GetWrongthinkChannelsRequest* request,
     ServerWriter<WrongthinkChannel>* writer) override;

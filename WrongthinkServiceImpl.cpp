@@ -16,12 +16,44 @@ You should have received a copy of the GNU Affero General Public License along w
 If not, see <https://www.gnu.org/licenses/>.
 */
 #include "WrongthinkServiceImpl.h"
+#include "boost/uuid/uuid.hpp"
+#include "boost/uuid/uuid_generators.hpp"
+#include "boost/uuid/uuid_io.hpp"
 
 WrongthinkServiceImpl::WrongthinkServiceImpl( const std::shared_ptr<DBInterface> db ) :
   db{ db }
 {
 }
 
+Status WrongthinkServiceImpl::GenerateUser(ServerContext* context, const GenericRequest* request,
+  WrongthinkUser* response) {
+  try {
+    (void)request;
+    soci::session sql = db->getSociSession();
+    // generate two uuids
+    boost::uuids::random_generator gen;
+    std::string id = boost::uuids::to_string(gen());
+    int idx = 0;
+    while((idx = id.find('-')) != std::string::npos) {
+      id.erase(idx, 1);
+    }
+    std::string id2 = boost::uuids::to_string(gen());
+    while((idx = id2.find('-')) != std::string::npos) {
+      id2.erase(idx, 1);
+    }
+    sql << "insert into users (uname,password) values (:uname,:password)", use(id), use(id2);
+    int uid = 0;
+    sql << "select user_id from users where uname = :uname", use(id), into(uid);
+    response->set_uname(id);
+    response->set_token(id2);
+    response->set_admin(false);
+    response->set_userid(uid);
+  }catch (const std::exception& e) {
+    std::cout << e.what() << std::endl;
+    return Status(StatusCode::INTERNAL, "");
+  }
+  return Status::OK;
+}
 
 /* needed to make the rpc function testable */
 Status WrongthinkServiceImpl::GetWrongthinkCommunitiesImpl(const GetWrongthinkCommunitiesRequest* request,
