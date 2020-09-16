@@ -18,10 +18,12 @@ Meant to be a real time chat application, with features similar to discord (a cl
 * [SOCI](https://github.com/SOCI/soci) - C++ Database Access Library
 * [uWebsockets](https://github.com/uNetworking/uWebSockets) - Simple, secure & standards compliant web server for the most demanding of applications
 * [googletest](https://github.com/google/googletest) - Google Testing and Mocking Framework
+* [libpq](https://www.postgresql.org/docs/9.5/libpq.html) - postgres c library
+* [Boost](https://www.boost.org/) - v1.73.0 - Boost provides free peer-reviewed portable C++ source libraries
 
 ### Prerequisites
 
-Most of the dependencies are included in the build, they are located in the `third_party` directory. The only thing that needs to be installed separately is [Postgresql](https://www.postgresql.org/). The postgresql `libpq`  library is used by `SOCI` for database access, but this should be included by default in the Postgresql installation. You may need to tweak the include directories in the `CMakeLists.txt` file depending on where the libpq header files are installed on your system:
+Most of the dependencies are included in the build, they are located in the `third_party` directory. [Postgresql](https://www.postgresql.org/) & [Boost](https://www.boost.org/) v1.73.0 need to be installed separately. The postgresql `libpq`  library is used by `SOCI` for database access, but this should be included by default in the Postgresql installation. You may need to tweak the include directories in the `CMakeLists.txt` file depending on where the libpq header files are installed on your system:
 
 ```
 # include directories
