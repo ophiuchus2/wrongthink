@@ -17,18 +17,16 @@ set(WITH_ORACLE OFF)
 set(WITH_POSTGRESQL ON)
 set(WITH_SQLITE3 ON)
 
-#set(SOCI_DIR "third_party/soci/cmake")
-
 find_package(Threads REQUIRED)
-#find_package(SOCI REQUIRED)
 FIND_PACKAGE( Boost 1.73.0 REQUIRED )
 INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
 
-add_subdirectory(third_party/soci ${CMAKE_CURRENT_BINARY_DIR}/soci EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/soci ${CMAKE_CURRENT_BINARY_DIR}/soci)
+add_subdirectory(third_party/spdlog ${CMAKE_CURRENT_BINARY_DIR}/spdlog)
 
 # Add googletest directly to our build. This defines
 # the gtest and gtest_main targets.
-add_subdirectory(third_party/googletest ${CMAKE_CURRENT_BINARY_DIR}/googletest EXCLUDE_FROM_ALL)
+add_subdirectory(third_party/googletest ${CMAKE_CURRENT_BINARY_DIR}/googletest)
 
 # JUST
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error -w")
@@ -143,6 +141,7 @@ add_custom_command(
 
 # Include generated *.pb.h files
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+include_directories("third_party/spdlog/include")
 
 configure_file(third_party/soci/include/soci/soci.h ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(third_party/soci/include/soci/postgresql/soci-postgresql.h ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
@@ -165,7 +164,8 @@ target_link_libraries(wrongthink
   soci_postgresql
   soci_sqlite3
   pq
-  ${Boost_LIBRARIES})
+  ${Boost_LIBRARIES}
+  spdlog::spdlog_header_only)
 
 add_executable(test_client "test_client.cpp"
   ${wt_proto_srcs}
@@ -195,7 +195,8 @@ target_link_libraries(tests
   soci_postgresql
   soci_sqlite3
   pq
-  ${Boost_LIBRARIES})
+  ${Boost_LIBRARIES}
+  spdlog::spdlog_header_only)
 
 target_include_directories(tests PUBLIC
                            include
@@ -213,7 +214,6 @@ add_test(NAME TestRpc COMMAND tests)
 # include directories
 target_include_directories(wrongthink PUBLIC
                            include
-
                            ${CMAKE_CURRENT_BINARY_DIR}
                            ${CMAKE_CURRENT_BINARY_DIR}/soci/include
                            /usr/local/include/

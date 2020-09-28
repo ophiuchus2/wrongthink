@@ -15,14 +15,16 @@ See the GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License along with this program.
 If not, see <https://www.gnu.org/licenses/>.
 */
-#include "WrongthinkServiceImpl.h"
 #include "boost/uuid/uuid.hpp"
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
+#include "WrongthinkServiceImpl.h"
 
-WrongthinkServiceImpl::WrongthinkServiceImpl( const std::shared_ptr<DBInterface> db ) :
-  db{ db }
+WrongthinkServiceImpl::WrongthinkServiceImpl( const std::shared_ptr<DBInterface> db,
+                                              const std::shared_ptr<spdlog::logger> logger) :
+  db{ db }, logger{ logger }
 {
+
 }
 
 Status WrongthinkServiceImpl::GenerateUser(ServerContext* context, const GenericRequest* request,

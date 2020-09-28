@@ -50,7 +50,7 @@ namespace {
       db = std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" );
       db->clear();
       db->validate();
-      service = std::make_shared<WrongthinkServiceImpl>(db);
+      service = std::make_shared<WrongthinkServiceImpl>(db, nullptr);
     }
 
     void TearDown() override {

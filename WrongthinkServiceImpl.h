@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License along w
 If not, see <https://www.gnu.org/licenses/>.
 */
 #include <grpcpp/grpcpp.h>
-
+#include "spdlog/spdlog.h"
 #include "wrongthink.grpc.pb.h"
 #include "SynchronizedChannel.h"
 #include "DB/DBInterface.h"
@@ -91,7 +91,8 @@ private:
 
 class WrongthinkServiceImpl final : public wrongthink::Service {
 public:
-  WrongthinkServiceImpl( std::shared_ptr<DBInterface> db );
+  WrongthinkServiceImpl(std::shared_ptr<DBInterface> db,
+    const std::shared_ptr<spdlog::logger> logger);
 
   Status GenerateUser(ServerContext* context, const GenericRequest* request,
     WrongthinkUser* response) override;
@@ -149,11 +150,11 @@ public:
 
   Status CreateUser(ServerContext* context, const CreateUserRequest* request,
     WrongthinkUser* response) override;
+
 private:
   bool checkForChannel(int channelid, soci::session& sql);
-
   std::map<int, SynchronizedChannel> channelMap;
   std::mutex channelMapMutex;
-
   std::shared_ptr<DBInterface> db;
+  std::shared_ptr<spdlog::logger> logger;
 };

@@ -21,22 +21,46 @@ If not, see <https://www.gnu.org/licenses/>.
 #include <mutex>
 #include <map>
 #include <ctime>
+#include <csignal>
 
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/basic_file_sink.h"
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 //#include <grpcpp/health_check_service_interface.h>
 #include "WrongthinkConfig.h"
-
-#include "WrongthinkServiceImpl.h"
-
 #include "DB/DBInterface.h"
 #include "DB/DBPostgres.h"
+#include "WrongthinkServiceImpl.h"
+
+std::shared_ptr<spdlog::logger> logger;
 
 static std::shared_ptr<DBInterface> db;
 
+void sigHandler(int num) {
+  logger->info("received signal: {}", num);
+  logger->info("terminating");
+  exit(num);
+}
+
+void coinfigureLog() {
+  auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+  console_sink->set_level(spdlog::level::trace);
+  console_sink->set_pattern("[wrongthink] [%^%l%$] %v");
+
+  auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/wrongthink.txt", true);
+  file_sink->set_level(spdlog::level::trace);
+
+  std::vector<spdlog::sink_ptr> sinks {console_sink, file_sink};
+  logger = std::make_shared<spdlog::logger>("multi_sink", sinks.begin(), sinks.end());
+  //logger->set_level(spdlog::level::trace);
+  logger->info("logger started");
+}
+
 void RunServer() {
   std::string server_address("0.0.0.0:50051");
-  WrongthinkServiceImpl service( db );
+  WrongthinkServiceImpl service( db, logger );
 
   grpc::EnableDefaultHealthCheckService(false);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
@@ -48,7 +72,7 @@ void RunServer() {
   builder.RegisterService(&service);
   // Finally assemble the server.
   std::unique_ptr<Server> server(builder.BuildAndStart());
-  std::cout << "Server listening on " << server_address << std::endl;
+  logger->info("Server listening on {}", server_address);
 
   // Wait for the server to shutdown. Note that some other thread must be
   // responsible for shutting down the server for this call to ever return.
@@ -56,20 +80,18 @@ void RunServer() {
 }
 
 int main(int argc, char** argv) {
-  //RunServer();
-  std::cout << "wrongthink version: "
-    << Wrongthink_VERSION_MAJOR
-    << "."
-    << Wrongthink_VERSION_MINOR << std::endl;
+  coinfigureLog();
+  logger->info("wrongthink version: {}.{} ", Wrongthink_VERSION_MAJOR, Wrongthink_VERSION_MINOR);
 
+  signal(SIGINT, sigHandler);
   try {
 
     if( argc == 2 && strcmp(argv[1], "sqlite") == 0 ) {
-      std::cout << "Using sqlite backend" << std::endl;
-      std::cout << "Not currently implemented" << std::endl;
+      logger->info("Using sqlite backend");
+      logger->info("Not currently implemented");
       return 1;
     } else {
-      std::cout << "Using postgres backend" << std::endl;
+      logger->info("Using postgres backend");
       db = std::make_shared<DBPostgres>("wrongthink", "test", "wrongthink");
     }
 
@@ -77,7 +99,7 @@ int main(int argc, char** argv) {
       db->clear();
     }
 
-    std::cout << "validating sql tables." << std::endl;
+    logger->info("validating sql tables.");
 
     db->validate();
   }
