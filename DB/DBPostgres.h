@@ -27,6 +27,14 @@ public:
   ~DBPostgres();
   virtual void validate() override;
   virtual void clear() override;
+
+  virtual int createUser(std::string uname, std::string password, int admin) override;
+  virtual int createChannel(std::string name, int community, int admin_id, int anonymous) override;
+  virtual int createCommunity(std::string name, int admin, int pub) override;
+  virtual rowset<row> getCommunityRowset(soci::session &sql) override;
+  virtual rowset<row> getCommunityChannelsRowset(soci::session &sql, int community_id) override;
+  virtual rowset<row> getChannelMessages(soci::session &sql, int channel_id) override;
+  virtual std::unique_ptr<row> getChannelRow(soci::session &sql, int channel_id) override;
 };
 
 #endif // DB_POSTGRES_H
