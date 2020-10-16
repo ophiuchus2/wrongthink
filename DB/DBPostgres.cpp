@@ -80,3 +80,77 @@ void DBPostgres::validate() {
           "mtext          text not null,"
           "mdate          timestamp with time zone not null default clock_timestamp())";
 }
+
+int DBPostgres::createUser(const std::string uname, const std::string password, int admin) {
+  soci::session sql = getSociSession();
+  int uid = 0;
+
+  sql << "insert into users (uname,password,admin) values(:uname,:password,:admin)",
+        use(uname), use(password), use(admin);
+  sql << "select user_id from users where uname = :uname", use(uname), into(uid);
+
+  return uid;
+}
+
+
+int DBPostgres::createChannel(const std::string name, const int community, const int admin_id, const int anonymous) {
+  soci::session sql = getSociSession();
+  int channel_id = 0;
+
+  sql << "insert into channels(name, "
+      << "community, admin, allow_anon) "
+      << "values(:name,:community,:admin,:anonymous)",
+       use(name), use(community), use(admin_id), use(anonymous);
+  sql << "select channel_id from channels where name = :name",
+    use(name), into(channel_id);
+
+  return channel_id;
+}
+
+int DBPostgres::createCommunity(const std::string name, const int admin, const int pub) {
+  soci::session sql = getSociSession();
+  int community_id;
+
+  sql << "insert into communities (name, admin, public) "
+      << "values(:name,:admin,:public)", use(name), use(admin), use(pub);
+  sql << "select community_id from communities where name = :name",
+    use(name), into(community_id);
+
+  return community_id;
+}
+
+rowset<row> DBPostgres::getCommunityRowset(soci::session &sql) {
+  rowset<row> rs = (sql.prepare << "select * from communities "
+                                << "inner join users on "
+                                << "communities.admin=users.user_id");
+
+  return rs;
+}
+
+
+rowset<row> DBPostgres::getCommunityChannelsRowset(soci::session &sql, const int community_id) {
+  rowset<row> rs = (sql.prepare << "select * from channels "
+                                << "inner join users on channels.admin=users.user_id "
+                                << "where community=:community order by channels.channel_id",
+                                use(community_id));
+
+  return rs;
+}
+
+rowset<row> DBPostgres::getChannelMessages(soci::session &sql, const int channel_id) {
+  rowset<row> rs = (sql.prepare << "select * from message inner join users on "
+              << "message.user_id = users.user_id where "
+              << "message.channel = :channelid order by message.msg_id", use(channel_id));
+
+  return rs;
+}
+
+
+std::unique_ptr<row> DBPostgres::getChannelRow(soci::session &sql, const int channel_id) {
+  std::unique_ptr<row> r(new row());
+
+  sql << "select name from channels where channel_id = :id",
+        use(channel_id), into(*r);
+
+  return r;
+}

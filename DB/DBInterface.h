@@ -20,6 +20,13 @@ If not, see <https://www.gnu.org/licenses/>.
 
 #include "soci.h"
 
+using soci::session;
+using soci::row;
+using soci::rowset;
+using soci::statement;
+using soci::use;
+using soci::into;
+
 class DBInterface {
 public:
   virtual ~DBInterface();
@@ -28,11 +35,20 @@ public:
   virtual void clear() = 0;
   soci::session getSociSession();
 
+  virtual int createUser( std::string uname, std::string password, int admin ) = 0;
+  virtual int createChannel(std::string name, int community, int admin_id, int anonymous) = 0;
+  virtual int createCommunity(std::string name, int admin, int pub) = 0;
+  virtual rowset<row> getCommunityRowset(soci::session &sql) = 0;
+  virtual rowset<row> getCommunityChannelsRowset(soci::session &sql, int community_id) = 0;
+  virtual rowset<row> getChannelMessages(soci::session &sql, int channel_id) = 0;
+  virtual std::unique_ptr<row> getChannelRow(soci::session &sql, int channel_id) = 0;
+
 protected:
   DBInterface( const soci::backend_factory &backend, std::string conString );
 
   const soci::backend_factory &dbType_;
   std::string dbConnectString_;
+
 };
 
 #endif // DB_INTERFACE_H

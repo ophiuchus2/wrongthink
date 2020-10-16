@@ -19,6 +19,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
 #include "WrongthinkServiceImpl.h"
+#include <memory>
 
 WrongthinkServiceImpl::WrongthinkServiceImpl( const std::shared_ptr<DBInterface> db,
                                               const std::shared_ptr<spdlog::logger> logger) :
@@ -31,7 +32,6 @@ Status WrongthinkServiceImpl::GenerateUser(ServerContext* context, const Generic
   WrongthinkUser* response) {
   try {
     (void)request;
-    soci::session sql = db->getSociSession();
     // generate two uuids
     boost::uuids::random_generator gen;
     std::string id = boost::uuids::to_string(gen());
@@ -43,9 +43,9 @@ Status WrongthinkServiceImpl::GenerateUser(ServerContext* context, const Generic
     while((idx = id2.find('-')) != std::string::npos) {
       id2.erase(idx, 1);
     }
-    sql << "insert into users (uname,password) values (:uname,:password)", use(id), use(id2);
-    int uid = 0;
-    sql << "select user_id from users where uname = :uname", use(id), into(uid);
+
+    int uid = db->createUser( id, id2, false );
+
     response->set_uname(id);
     response->set_token(id2);
     response->set_admin(false);
@@ -63,10 +63,10 @@ Status WrongthinkServiceImpl::GetWrongthinkCommunitiesImpl(const GetWrongthinkCo
   try {
     // not using request data yet
     (void)request;
+
     soci::session sql = db->getSociSession();
-    rowset<row> rs = (sql.prepare << "select * from communities "
-                                  << "inner join users on "
-                                  << "communities.admin=users.user_id");
+    rowset<row> rs = db->getCommunityRowset( sql );
+
     for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
       WrongthinkCommunity community;
       row const& row = *it;
@@ -103,11 +103,10 @@ Status WrongthinkServiceImpl::GetWrongthinkChannelsImpl(const GetWrongthinkChann
   ServerWriterWrapper<WrongthinkChannel>* writer) {
   try {
     int community = request->communityid();
+
     soci::session sql = db->getSociSession();
-    rowset<row> rs = (sql.prepare << "select * from channels "
-                                  << "inner join users on channels.admin=users.user_id "
-                                  << "where community=:community order by channels.channel_id",
-                                  use(community));
+    rowset<row> rs = db->getCommunityChannelsRowset(sql, community);
+
     for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
       WrongthinkChannel channel;
       row const& row = *it;
@@ -134,13 +133,9 @@ Status WrongthinkServiceImpl::CreateWrongthinkChannel(ServerContext* context,
     int anonymous = request->anonymous();
     std::string name = request->name();
     int admin = request->adminid();
-    soci::session sql = db->getSociSession();
-    sql << "insert into channels(name, "
-        << "community, admin, allow_anon) "
-        << "values(:name,:community,:admin,:anonymous)",
-         use(name), use(community), use(admin), use(anonymous);
-    sql << "select channel_id from channels where name = :name",
-      use(name), into(channelid);
+
+    channelid = db->createChannel( name, community, admin, anonymous );
+
     response->set_channelid(channelid);
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
@@ -156,11 +151,9 @@ Status WrongthinkServiceImpl::CreateWrongthinkCommunity(ServerContext* context,
     std::string name = request->name();
     int admin = request->adminid();
     int pub = request->public_();
-    soci::session sql = db->getSociSession();
-    sql << "insert into communities (name, admin, public) "
-        << "values(:name,:admin,:public)", use(name), use(admin), use(pub);
-    sql << "select community_id from communities where name = :name",
-      use(name), into(communityid);
+
+    communityid = db->createCommunity( name, admin, pub );
+
     response->set_communityid(communityid);
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
@@ -272,10 +265,10 @@ Status WrongthinkServiceImpl::GetWrongthinkMessagesImpl(const GetWrongthinkMessa
   int afterid = request->afterid();
   int afterdate = request->afterdate();
   try {
+
     soci::session sql = db->getSociSession();
-    rowset<row> rs = (sql.prepare << "select * from message inner join users on "
-                << "message.user_id = users.user_id where "
-                << "message.channel = :channelid order by message.msg_id", use(channelid));
+    rowset<row> rs = db->getChannelMessages(sql, channelid);
+
     for (rowset<row>::const_iterator it = rs.begin(); it != rs.end(); ++it) {
       row const& row = *it;
       WrongthinkMessage msg;
@@ -305,10 +298,9 @@ Status WrongthinkServiceImpl::CreateUser(ServerContext* context, const CreateUse
     std::string password = request->password();
     int admin = request->admin();
     int uid = 0;
-    soci::session sql = db->getSociSession();
-    sql << "insert into users (uname,password,admin) values(:uname,:password,:admin)",
-          use(uname), use(password), use(admin);
-    sql << "select user_id from users where uname = :uname", use(uname), into(uid);
+
+    uid = db->createUser( uname, password, admin );
+
     response->set_userid(uid);
     response->set_uname(request->uname());
     response->set_admin(admin);
@@ -319,16 +311,16 @@ Status WrongthinkServiceImpl::CreateUser(ServerContext* context, const CreateUse
   return Status::OK;
 }
 
-bool WrongthinkServiceImpl::checkForChannel(int channelid, soci::session& sql) {
+bool WrongthinkServiceImpl::checkForChannel(int channelid, soci::session &sql) {
   if (channelMap.count(channelid) != 1) {
-    row r;
-    sql << "select name from channels where channel_id = :id",
-          use(channelid), into(r);
-    if(r.get_indicator(0) != soci::i_null)
+
+    auto r = db->getChannelRow( sql, channelid );
+
+    if(r->get_indicator(0) != soci::i_null)
       channelMap.emplace( std::piecewise_construct,
                           std::forward_as_tuple(channelid),
                           std::forward_as_tuple(channelid,
-                                                r.get<std::string>(0)));
+                                                r->get<std::string>(0)));
     else
       return false;
   }
