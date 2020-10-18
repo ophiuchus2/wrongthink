@@ -22,12 +22,14 @@ If not, see <https://www.gnu.org/licenses/>.
 #include <map>
 #include <ctime>
 #include <csignal>
+#include <string_view>
 
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
+#include <grpcpp/support/server_interceptor.h>
 //#include <grpcpp/health_check_service_interface.h>
 #include "WrongthinkConfig.h"
 #include "DB/DBInterface.h"
@@ -38,6 +40,76 @@ std::shared_ptr<spdlog::logger> logger;
 
 static std::shared_ptr<DBInterface> db;
 
+inline std::string_view to_string_view(const grpc::string_ref& s) {
+  return {s.data(), s.length()};
+}
+
+class LoggingInterceptor : public grpc::experimental::Interceptor {
+ public:
+  LoggingInterceptor(grpc::experimental::ServerRpcInfo* info) : info_{info} { }
+
+  void Intercept(grpc::experimental::InterceptorBatchMethods* methods) override {
+    if (methods->QueryInterceptionHookPoint(
+            grpc::experimental::InterceptionHookPoints::PRE_SEND_INITIAL_METADATA)) {
+      /*logger->info("PRE_SEND_INITIAL_METADATA");
+      auto* map = methods->GetSendInitialMetadata();
+      for (const auto& pair : *map) {
+        logger->info("{}, {}", to_string_view(pair.first), to_string_view(pair.second));
+      }*/
+    }
+    if (methods->QueryInterceptionHookPoint(
+            grpc::experimental::InterceptionHookPoints::PRE_SEND_MESSAGE)) {
+      // do nothing
+    }
+    if (methods->QueryInterceptionHookPoint(
+            grpc::experimental::InterceptionHookPoints::PRE_SEND_STATUS)) {
+      // do nothing
+    }
+    if (methods->QueryInterceptionHookPoint(
+            grpc::experimental::InterceptionHookPoints::POST_RECV_INITIAL_METADATA)) {
+      // do nothing
+    }
+    if (methods->QueryInterceptionHookPoint(
+            grpc::experimental::InterceptionHookPoints::POST_RECV_MESSAGE)) {
+      //logger->info("POST_RECV_MESSAGE");
+      grpc_impl::ServerContextBase* serverContext = info_->server_context();
+      auto msg = static_cast<grpc::protobuf::Message*>(methods->GetRecvMessage());
+      std::string data;
+      //msg->SerializeToString(&data);
+      const google::protobuf::Descriptor* descriptor = msg->GetDescriptor();
+      logger->info("RPC method: {}, peer: {}, request type: {}",
+        info_->method(), serverContext->peer(), descriptor->name());
+      logger->info("request data:");
+      logger->info("{}", msg->DebugString());
+    }
+    if (methods->QueryInterceptionHookPoint(
+            grpc::experimental::InterceptionHookPoints::POST_RECV_CLOSE)) {
+      // Got nothing interesting to do here
+    }
+    if (methods->QueryInterceptionHookPoint(
+            grpc::experimental::InterceptionHookPoints::PRE_RECV_STATUS)) {
+      // do nothing
+    }
+    if (methods->QueryInterceptionHookPoint(
+            grpc::experimental::InterceptionHookPoints::POST_RECV_STATUS)) {
+      // do nothing
+    }
+    methods->Proceed();
+  }
+
+ private:
+  grpc::experimental::ServerRpcInfo* info_;
+};
+
+class LoggingInterceptorFactory
+    : public grpc::experimental::ServerInterceptorFactoryInterface {
+ public:
+  virtual grpc::experimental::Interceptor* CreateServerInterceptor(
+      grpc::experimental::ServerRpcInfo* info) override {
+    return new LoggingInterceptor(info);
+  }
+};
+
 void sigHandler(int num) {
   logger->info("received signal: {}", num);
   logger->info("terminating");
@@ -47,7 +119,7 @@ void sigHandler(int num) {
 void coinfigureLog() {
   auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
   console_sink->set_level(spdlog::level::trace);
-  console_sink->set_pattern("[wrongthink] [%^%l%$] %v");
+  console_sink->set_pattern("[%H:%M:%S %z] [wrongthink] [%^%l%$] %v");
 
   auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/wrongthink.txt", true);
   file_sink->set_level(spdlog::level::trace);
@@ -59,6 +131,12 @@ void coinfigureLog() {
 }
 
 void RunServer() {
+  std::vector<
+      std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>>
+      creators;
+  creators.push_back(
+      std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>(
+          new LoggingInterceptorFactory()));
   std::string server_address("0.0.0.0:50051");
   WrongthinkServiceImpl service( db, logger );
 
@@ -70,6 +148,9 @@ void RunServer() {
   // Register "service" as the instance through which we'll communicate with
   // clients. In this case it corresponds to an *synchronous* service.
   builder.RegisterService(&service);
+
+  logger->info("register interceptors");
+  builder.experimental().SetInterceptorCreators(std::move(creators));
   // Finally assemble the server.
   std::unique_ptr<Server> server(builder.BuildAndStart());
   logger->info("Server listening on {}", server_address);
