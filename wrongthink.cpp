@@ -77,10 +77,8 @@ class LoggingInterceptor : public grpc::experimental::Interceptor {
       std::string data;
       //msg->SerializeToString(&data);
       const google::protobuf::Descriptor* descriptor = msg->GetDescriptor();
-      logger->info("RPC method: {}, peer: {}, request type: {}",
-        info_->method(), serverContext->peer(), descriptor->name());
-      logger->info("request data:");
-      logger->info("{}", msg->DebugString());
+      logger->info("RPC method: {}, peer: {}, request type: {}, request data: {}",
+        info_->method(), serverContext->peer(), descriptor->name(), msg->ShortDebugString());
     }
     if (methods->QueryInterceptionHookPoint(
             grpc::experimental::InterceptionHookPoints::POST_RECV_CLOSE)) {
