@@ -18,8 +18,7 @@ set(WITH_POSTGRESQL ON)
 set(WITH_SQLITE3 ON)
 
 find_package(Threads REQUIRED)
-FIND_PACKAGE( Boost 1.67.0 REQUIRED )
-INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
+INCLUDE_DIRECTORIES( third_party/boost_uuid )
 
 add_subdirectory(third_party/soci ${CMAKE_CURRENT_BINARY_DIR}/soci EXCLUDE_FROM_ALL)
 add_subdirectory(third_party/spdlog ${CMAKE_CURRENT_BINARY_DIR}/spdlog EXCLUDE_FROM_ALL)
