@@ -23,7 +23,7 @@ Meant to be a real time chat application, with features similar to discord (a cl
 
 ### Prerequisites
 
-Most of the dependencies are included in the build, they are located in the `third_party` directory. [Postgresql](https://www.postgresql.org/) & [Boost](https://www.boost.org/) v1.73.0 need to be installed separately. The postgresql `libpq`  library is used by `SOCI` for database access, but this should be included by default in the Postgresql installation. You may need to tweak the include directories in the `CMakeLists.txt` file depending on where the libpq header files are installed on your system:
+Most of the dependencies are included in the build, they are located in the `third_party` directory. [Postgresql](https://www.postgresql.org/) needs to be installed separately. The postgresql `libpq`  library is used by `SOCI` for database access, but this should be included by default in the Postgresql installation. You may need to tweak the include directories in the `CMakeLists.txt` file depending on where the libpq header files are installed on your system:
 
 ```
 # include directories
