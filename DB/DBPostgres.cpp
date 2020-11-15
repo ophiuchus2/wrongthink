@@ -45,6 +45,16 @@ void DBPostgres::validate() {
           "password          varchar(50) not null,"
           "admin             boolean default false)";
 
+  sql << "create table if not exists banned_users ("
+         "entry_id          serial primary key,"
+         "user_id           int references users,"
+         "expire            date not null default CURRENT_DATE + 3)";
+
+  sql << "create table if not exists banned_ips ("
+         "entry_id          serial primay key,"
+         "ip                varchar(50) unique not null,"
+         "expire            date not null)";
+
   // create community table
   sql << "create table if not exists communities ("
           "community_id       serial   primary key,"
@@ -79,6 +89,54 @@ void DBPostgres::validate() {
           "type           varchar(50),"
           "mtext          text not null,"
           "mdate          timestamp with time zone not null default clock_timestamp())";
+}
+
+bool DBPostgres::isUserBanned(const std::string& uname, const std::string& ip) {
+  soci::session sql = getSociSession();
+  std::tm date;
+  sql << "select expire from banned_users where uname = :uname", use(uname), into(date);
+  if(!sql.got_data()) return false;
+  std::time_t te = std::mktime(&date);
+  std::time_t tc = std::time(nullptr);
+  if(tc > te) {
+    sql << "delete from banned_users where uname = :uname", use(uname);
+    return false;
+  }
+  if (!this->isIPBanned(ip))
+    sql << "insert into banned_ips (ip,expire) values (:ip,:date)", use(ip), use(date);
+  return true;
+}
+
+bool DBPostgres::isIPBanned(const std::string& ip) {
+  soci::session sql = getSociSession();
+  std::tm date;
+  sql << "select expire from banned_ips where ip = :ip", use(ip), into(date);
+  if(!sql.got_data()) return false;
+  std::time_t te = std::mktime(&date);
+  std::time_t tc = std::time(nullptr);
+  if(tc > te) {
+    sql << "delete from banned_ips where ip = :ip", use(ip);
+    return false;
+  }
+  return true;
+}
+
+void DBPostgres::banUser(const std::string& uname, int days) {
+  soci::session sql = getSociSession();
+  int uid;
+  sql << "select user_id from users where uname = :uname", use(uname), into(uid);
+  if (sql.got_data()) {
+    sql << "select * from banned_users where user_id = :uid", use(uid);
+    if(sql.got_data()) {
+      sql << "update banned_users set expire = CURRENT_DATE + :days where user_id = :uid",
+            use(days), use(uid);
+    } else {
+      sql << "insert into banned_users (user_id,expire) values(:uid,CURRENT_DATE + :days)",
+             use(uid), use(days);
+    }
+  } else {
+    throw soci::soci_error("user not found");
+  }
 }
 
 int DBPostgres::createUser(const std::string uname, const std::string password, int admin) {

@@ -20,6 +20,7 @@ If not, see <https://www.gnu.org/licenses/>.
 
 #include "DBInterface.h"
 #include "soci-postgresql.h"
+#include <ctime>
 
 class DBPostgres : public DBInterface {
 public:
@@ -28,6 +29,9 @@ public:
   virtual void validate() override;
   virtual void clear() override;
 
+  virtual bool isUserBanned(const std::string& uname, const std::string& ip) override;
+  virtual bool isIPBanned(const std::string& ip) override;
+  virtual void banUser(const std::string& uname, int days) override;
   virtual int createUser(std::string uname, std::string password, int admin) override;
   virtual int createChannel(std::string name, int community, int admin_id, int anonymous) override;
   virtual int createCommunity(std::string name, int admin, int pub) override;

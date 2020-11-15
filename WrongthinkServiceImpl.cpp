@@ -28,6 +28,17 @@ WrongthinkServiceImpl::WrongthinkServiceImpl( const std::shared_ptr<DBInterface>
 
 }
 
+Status WrongthinkServiceImpl::BanUser(ServerContext* context, const BanUserRequest* request,
+  GenericResponse* response) {
+    try {
+      db->banUser(request->uname(), request->days());
+    } catch (const std::exception& e) {
+      std::cout << e.what() << std::endl;
+      return Status(StatusCode::INTERNAL, "");
+    }
+    return Status::OK;
+}
+
 Status WrongthinkServiceImpl::GenerateUser(ServerContext* context, const GenericRequest* request,
   WrongthinkUser* response) {
   try {

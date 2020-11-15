@@ -35,6 +35,9 @@ public:
   virtual void clear() = 0;
   soci::session getSociSession();
 
+  virtual bool isUserBanned(const std::string& uname, const std::string& ip) = 0;
+  virtual bool isIPBanned(const std::string& ip) = 0;
+  virtual void banUser(const std::string& uname, int days) = 0;
   virtual int createUser( std::string uname, std::string password, int admin ) = 0;
   virtual int createChannel(std::string name, int community, int admin_id, int anonymous) = 0;
   virtual int createCommunity(std::string name, int admin, int pub) = 0;

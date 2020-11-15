@@ -94,6 +94,13 @@ public:
   WrongthinkServiceImpl(std::shared_ptr<DBInterface> db,
     const std::shared_ptr<spdlog::logger> logger);
 
+  // not yet implemented
+  Status DeleteMessage(ServerContext* context, const DeleteMessageRequest* request,
+      GenericResponse* response) override { return {}; };
+
+  Status BanUser(ServerContext* context, const BanUserRequest* request,
+    GenericResponse* response) override;
+
   Status GenerateUser(ServerContext* context, const GenericRequest* request,
     WrongthinkUser* response) override;
 
