@@ -31,6 +31,8 @@ void DBPostgres::clear() {
   sql << "drop table if exists control_message";
   sql << "drop table if exists channels";
   sql << "drop table if exists communities";
+  sql << "drop table if exists banned_users";
+  sql << "drop table if exists banned_ips";
   sql << "drop table if exists users";
 }
 
@@ -51,7 +53,7 @@ void DBPostgres::validate() {
          "expire            date not null default CURRENT_DATE + 3)";
 
   sql << "create table if not exists banned_ips ("
-         "entry_id          serial primay key,"
+         "entry_id          serial primary key,"
          "ip                varchar(50) unique not null,"
          "expire            date not null)";
 
