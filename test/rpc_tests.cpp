@@ -21,6 +21,9 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "wrongthink.grpc.pb.h"
 #include <vector>
 #include <iostream>
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/sinks/basic_file_sink.h"
 #include "DB/DBPostgres.h"
 
 // grpc using statements
@@ -41,16 +44,54 @@ using soci::statement;
 using soci::use;
 using soci::into;
 
+// include interceptor classes
+#include "Interceptors/Interceptor.h"
+
 namespace {
 
 
   class RpcSuiteTest : public ::testing::Test {
   protected:
-    void SetUp() override {
-      db = std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" );
+
+    RpcSuiteTest() {
+      coinfigureLog();
+      //db = std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" );
       db->clear();
       db->validate();
-      service = std::make_shared<WrongthinkServiceImpl>(db, nullptr);
+
+      std::vector<
+          std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>>
+          creators;
+      creators.push_back(
+          std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>(
+              new LoggingInterceptorFactory(db, logger_)));
+
+      ServerBuilder builder;
+      server_address_ = "localhost:50052";
+      builder.AddListeningPort(server_address_, grpc::InsecureServerCredentials());
+      builder.RegisterService(&service);
+      builder.experimental().SetInterceptorCreators(std::move(creators));
+      server_ = builder.BuildAndStart();
+      logger_->info("test server listening on {}", server_address_);
+    }
+
+    void coinfigureLog() {
+      auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+      console_sink->set_level(spdlog::level::trace);
+      console_sink->set_pattern("[%H:%M:%S %z] [wrongthink] [%^%l%$] %v");
+
+      auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>("logs/wrongthink_test.txt", true);
+      file_sink->set_level(spdlog::level::trace);
+
+      std::vector<spdlog::sink_ptr> sinks {console_sink, file_sink};
+      logger_ = std::make_shared<spdlog::logger>("multi_sink", sinks.begin(), sinks.end());
+      //logger->set_level(spdlog::level::trace);
+      logger_->info("logger started");
+    }
+
+    void SetUp() override {
+      db->clear();
+      db->validate();
     }
 
     void TearDown() override {
@@ -63,7 +104,7 @@ namespace {
       ureq.set_uname("user1");
       ureq.set_password("upass");
       ureq.set_admin(true);
-      Status st = service->CreateUser(nullptr, (req) ? req : &ureq, &uresp);
+      Status st = service.CreateUser(nullptr, (req) ? req : &ureq, &uresp);
       if (st.ok())
         users.push_back(uresp);
       return st;
@@ -78,7 +119,7 @@ namespace {
       mc.set_adminid(users[0].userid());
       mc.set_public_(true);
 
-      Status st = service->CreateWrongthinkCommunity(nullptr, (req) ? req : &mc,
+      Status st = service.CreateWrongthinkCommunity(nullptr, (req) ? req : &mc,
         &communityResp);
       if (st.ok())
         communities.push_back(communityResp);
@@ -95,24 +136,28 @@ namespace {
       mch.set_anonymous(true);
       mch.set_adminid(users[0].userid());
 
-      Status st = service->CreateWrongthinkChannel(nullptr,
+      Status st = service.CreateWrongthinkChannel(nullptr,
                         (req) ? req : &mch, &resp);
       if (st.ok())
         channels.push_back(resp);
       return st;
     }
 
-    std::shared_ptr<DBInterface> db;
-    std::shared_ptr<WrongthinkServiceImpl> service;
+    std::shared_ptr<DBInterface> db{std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" )};
     std::vector<WrongthinkUser> users;
     std::vector<WrongthinkCommunity> communities;
     std::vector<WrongthinkChannel> channels;
     WrongthinkUser mUResp;
+    std::shared_ptr<spdlog::logger> logger_;
+    WrongthinkServiceImpl service{db, logger_};
+    // server members
+    std::string server_address_;
+    std::unique_ptr<Server> server_;
   };
 
   TEST_F(RpcSuiteTest, TestGenerateUser) {
     WrongthinkUser resp;
-    Status st = service->GenerateUser(nullptr, nullptr, &resp);
+    Status st = service.GenerateUser(nullptr, nullptr, &resp);
     std::cout << "TestGenerateUser: uname: " << resp.uname()
               << " token: " << resp.token() << std::endl;
     ASSERT_TRUE(st.ok());
@@ -164,7 +209,7 @@ namespace {
     }
 
     ServerWriterWrapper<WrongthinkCommunity> wrapper;
-    st = service->GetWrongthinkCommunitiesImpl(nullptr, &wrapper);
+    st = service.GetWrongthinkCommunitiesImpl(nullptr, &wrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkCommunity>& objList = wrapper.getObjList();
@@ -227,7 +272,7 @@ namespace {
     ServerWriterWrapper<WrongthinkChannel> wrapper;
 
     req.set_communityid(cresp.communityid());
-    st = service->GetWrongthinkChannelsImpl(&req, &wrapper);
+    st = service.GetWrongthinkChannelsImpl(&req, &wrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkChannel>& objList = wrapper.getObjList();
@@ -276,7 +321,7 @@ namespace {
     msgList.push_back(msg1);
     msgList.push_back(msg2);
 
-    st = service->SendWrongthinkMessageImpl(&sendWrapper, nullptr);
+    st = service.SendWrongthinkMessageImpl(&sendWrapper, nullptr);
     ASSERT_TRUE(st.ok());
 
     // get message test
@@ -284,7 +329,7 @@ namespace {
     GetWrongthinkMessagesRequest getMsgReq;
 
     getMsgReq.set_channelid(chresp.channelid());
-    st = service->GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
+    st = service.GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkMessage>& msgList1 = getMessageWrapper.getObjList();
@@ -340,10 +385,10 @@ namespace {
     msg2.set_userid(uresp.userid());
     msg2.set_text("msg2");
 
-    st = service->SendWrongthinkMessageWeb(nullptr, &msg1, nullptr);
+    st = service.SendWrongthinkMessageWeb(nullptr, &msg1, nullptr);
     ASSERT_TRUE(st.ok());
 
-    st = service->SendWrongthinkMessageWeb(nullptr, &msg2, nullptr);
+    st = service.SendWrongthinkMessageWeb(nullptr, &msg2, nullptr);
     ASSERT_TRUE(st.ok());
 
     // get message test
@@ -351,7 +396,7 @@ namespace {
     GetWrongthinkMessagesRequest getMsgReq;
 
     getMsgReq.set_channelid(chresp.channelid());
-    st = service->GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
+    st = service.GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkMessage>& msgList1 = getMessageWrapper.getObjList();
