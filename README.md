@@ -25,6 +25,10 @@ Meant to be a real time chat application, with features similar to discord (a cl
 
 ![img](https://i.imgur.com/uW3THXD.png)
 
+### Envoy
+
+Because the HTTP/2 streaming APIs are not yet fully implemented in web browsers, the [Envoy proxy](https://www.envoyproxy.io/) can be used with [gRPC web](https://github.com/grpc/grpc-web) to allow web browsers to communicate with gRPC servers. This is required when using the wrongthink web UI. In this setup, Envoy is deployed along side the wrongthink server, and proxies messages sent via gRPC-web (javascript) to the gRPC server. See https://grpc.io/docs/platforms/web/ & https://github.com/grpc/grpc-web for details. Once the HTTP/2 streaming apis are fully implemented in web browsers, Envoy will be eliminated from the server deployment. For details on building Envoy, see https://www.envoyproxy.io/docs/envoy/latest/start/building.
+
 ## Building
 
 ### Third party libraries
