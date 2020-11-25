@@ -21,6 +21,10 @@ Meant to be a real time chat application, with features similar to discord (a cl
 * [NodeJS command line client](https://github.com/ophiuchus2/wrongthink-node-cmd-client) - command line client written in Node. Useful for experimenting with & testing RPCs.
 * [Wrongthink web UI](https://github.com/ophiuchus2/wrongthink-react-ui) - react based web UI
 
+## Architecture (work in progress)
+
+![img](https://i.imgur.com/uW3THXD.png)
+
 ## Building
 
 ### Third party libraries
