@@ -19,6 +19,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
 #include "WrongthinkServiceImpl.h"
+#include "Authentication/WrongthinkTokenAuthenticator.h"
 #include <memory>
 
 WrongthinkServiceImpl::WrongthinkServiceImpl( const std::shared_ptr<DBInterface> db,
@@ -31,6 +32,24 @@ WrongthinkServiceImpl::WrongthinkServiceImpl( const std::shared_ptr<DBInterface>
 Status WrongthinkServiceImpl::BanUser(ServerContext* context, const BanUserRequest* request,
   GenericResponse* response) {
     try {
+      logger->debug("enter BanUser()");
+      logger->debug("client metadata:");
+      auto meta = context->client_metadata();
+      for(auto& it : meta) {
+        // grpc::string_ref, what a useful class
+        auto strf = it.first;
+        auto strf1 = it.second;
+        std::string s1(strf.data(), strf.length());
+        std::string s2(strf1.data(), strf1.length());
+        logger->debug("{}: {}", s1, s2);
+      }
+      if (!WrongthinkTokenAuth::hasCredentials(context))
+        return Status(StatusCode::UNAUTHENTICATED, "No credentials attached to the channel");
+      auto creds = WrongthinkTokenAuth::getCredentials(context);
+      if (!db->isUserValid(creds.first, creds.second))
+        return Status(StatusCode::UNAUTHENTICATED, "Invalid user");
+      if (!db->isUserAdmin(creds.first))
+        return Status(StatusCode::UNAUTHENTICATED, "Invalid permission");
       db->banUser(request->uname(), request->days());
     } catch (const std::exception& e) {
       std::cout << e.what() << std::endl;
@@ -55,11 +74,13 @@ Status WrongthinkServiceImpl::GenerateUser(ServerContext* context, const Generic
       id2.erase(idx, 1);
     }
 
-    int uid = db->createUser( id, id2, false );
+    // first user is always admin
+    int admin = false;
+    int uid = db->createUser( id, id2, admin );
 
     response->set_uname(id);
     response->set_token(id2);
-    response->set_admin(false);
+    response->set_admin(admin);
     response->set_userid(uid);
   }catch (const std::exception& e) {
     std::cout << e.what() << std::endl;

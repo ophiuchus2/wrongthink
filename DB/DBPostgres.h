@@ -29,10 +29,13 @@ public:
   virtual void validate() override;
   virtual void clear() override;
 
+  virtual bool isUserValid(const std::string& uname, const std::string& token) override;
+  virtual bool isUserAdmin(const std::string& uname) override;
+  virtual bool isUserModerator(const std::string& uname, int channel_id) override;
   virtual bool isUserBanned(const std::string& uname, const std::string& ip) override;
   virtual bool isIPBanned(const std::string& ip) override;
   virtual void banUser(const std::string& uname, int days) override;
-  virtual int createUser(std::string uname, std::string password, int admin) override;
+  virtual int createUser(std::string uname, std::string password, int& admin) override;
   virtual int createChannel(std::string name, int community, int admin_id, int anonymous) override;
   virtual int createCommunity(std::string name, int admin, int pub) override;
   virtual rowset<row> getCommunityRowset(soci::session &sql) override;

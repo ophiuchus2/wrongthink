@@ -36,6 +36,8 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "DB/DBPostgres.h"
 #include "WrongthinkServiceImpl.h"
 
+#include "Authentication/WrongthinkTokenAuthenticator.h"
+
 // include interceptor classes
 #include "Interceptors/Interceptor.h"
 
@@ -80,8 +82,12 @@ void RunServer() {
   grpc::EnableDefaultHealthCheckService(false);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
   ServerBuilder builder;
+  auto server_creds = grpc::InsecureServerCredentials();
+  // add server credential processor
+  server_creds->SetAuthMetadataProcessor(
+    std::make_shared<WrongthinkTokenAuth::WrongthinkAuthMetadataProcessor>(true));
   // Listen on the given address without any authentication mechanism.
-  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+  builder.AddListeningPort(server_address, server_creds);
   // Register "service" as the instance through which we'll communicate with
   // clients. In this case it corresponds to an *synchronous* service.
   builder.RegisterService(&service);
@@ -91,7 +97,7 @@ void RunServer() {
   // Finally assemble the server.
   std::unique_ptr<Server> server(builder.BuildAndStart());
   logger->info("Server listening on {}", server_address);
-
+  
   // Wait for the server to shutdown. Note that some other thread must be
   // responsible for shutting down the server for this call to ever return.
   server->Wait();

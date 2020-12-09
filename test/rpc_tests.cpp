@@ -25,6 +25,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
 #include "DB/DBPostgres.h"
+#include "Authentication/WrongthinkTokenAuthenticator.h"
 
 // grpc using statements
 using grpc::Server;
@@ -58,7 +59,7 @@ namespace {
       //db = std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" );
       db->clear();
       db->validate();
-
+      service = std::make_shared<WrongthinkServiceImpl>(db, logger_);
       std::vector<
           std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>>
           creators;
@@ -68,8 +69,12 @@ namespace {
 
       ServerBuilder builder;
       server_address_ = "localhost:50052";
+      //auto server_creds = grpc::SslServerCredentials({});
+      // add server credential processor
+      //server_creds->SetAuthMetadataProcessor(
+        //std::make_shared<WrongthinkTokenAuth::WrongthinkAuthMetadataProcessor>(true));
       builder.AddListeningPort(server_address_, grpc::InsecureServerCredentials());
-      builder.RegisterService(&service);
+      builder.RegisterService(service.get());
       builder.experimental().SetInterceptorCreators(std::move(creators));
       server_ = builder.BuildAndStart();
       logger_->info("test server listening on {}", server_address_);
@@ -84,8 +89,8 @@ namespace {
       file_sink->set_level(spdlog::level::trace);
 
       std::vector<spdlog::sink_ptr> sinks {console_sink, file_sink};
-      logger_ = std::make_shared<spdlog::logger>("multi_sink", sinks.begin(), sinks.end());
-      //logger->set_level(spdlog::level::trace);
+      logger_.reset(new spdlog::logger("multi_sink", sinks.begin(), sinks.end()));
+      logger_->set_level(spdlog::level::trace);
       logger_->info("logger started");
     }
 
@@ -104,7 +109,7 @@ namespace {
       ureq.set_uname("user1");
       ureq.set_password("upass");
       ureq.set_admin(true);
-      Status st = service.CreateUser(nullptr, (req) ? req : &ureq, &uresp);
+      Status st = service->CreateUser(nullptr, (req) ? req : &ureq, &uresp);
       if (st.ok())
         users.push_back(uresp);
       return st;
@@ -119,7 +124,7 @@ namespace {
       mc.set_adminid(users[0].userid());
       mc.set_public_(true);
 
-      Status st = service.CreateWrongthinkCommunity(nullptr, (req) ? req : &mc,
+      Status st = service->CreateWrongthinkCommunity(nullptr, (req) ? req : &mc,
         &communityResp);
       if (st.ok())
         communities.push_back(communityResp);
@@ -136,7 +141,7 @@ namespace {
       mch.set_anonymous(true);
       mch.set_adminid(users[0].userid());
 
-      Status st = service.CreateWrongthinkChannel(nullptr,
+      Status st = service->CreateWrongthinkChannel(nullptr,
                         (req) ? req : &mch, &resp);
       if (st.ok())
         channels.push_back(resp);
@@ -149,15 +154,127 @@ namespace {
     std::vector<WrongthinkChannel> channels;
     WrongthinkUser mUResp;
     std::shared_ptr<spdlog::logger> logger_;
-    WrongthinkServiceImpl service{db, logger_};
+    std::shared_ptr<WrongthinkServiceImpl> service;
     // server members
     std::string server_address_;
     std::unique_ptr<Server> server_;
   };
 
+  TEST_F(RpcSuiteTest, TestBanUser) {
+
+    // generate user
+    WrongthinkUser admin;
+    Status st = service->GenerateUser(nullptr, nullptr, &admin);
+    ASSERT_TRUE(st.ok());
+    ASSERT_TRUE(admin.admin());
+
+    auto call_creds = grpc::MetadataCredentialsFromPlugin(
+    std::unique_ptr<grpc::MetadataCredentialsPlugin>(
+        new WrongthinkTokenAuth::WrongthinkClientTokenPlugin(admin.uname(), admin.token())));
+    //auto channel_creds =  grpc::InsecureChannelCredentials();
+    //auto combined_creds = grpc::CompositeChannelCredentials(channel_creds, call_creds);
+    auto channel =
+        grpc::CreateChannel(server_address_, grpc::InsecureChannelCredentials());
+
+    auto mstub = wrongthink::NewStub(channel);
+    grpc::ClientContext ctx;
+    WrongthinkTokenAuth::addCredentials(&ctx, &admin);
+    //ctx.set_credentials(call_creds);
+
+    WrongthinkUser banned;
+    GenericRequest greq;
+    st = mstub->GenerateUser(&ctx, greq, &banned);
+    //logger_->info("generate user error message: {}", st.error_message());
+    ASSERT_TRUE(st.ok());
+    ASSERT_TRUE(!banned.admin());
+
+    BanUserRequest req;
+    req.set_uname(banned.uname());
+    req.set_days(3);
+
+    grpc::ClientContext ctx1;
+    WrongthinkTokenAuth::addCredentials(&ctx1, &admin);
+    //ctx1.set_credentials(call_creds);
+    st = mstub->BanUser(&ctx1, req, nullptr);
+    logger_->info("call_creds debug string: {}", call_creds->DebugString());
+    logger_->info("ban user error message: {}", st.error_message());
+    ASSERT_TRUE(st.ok());
+    
+
+    //TODO: check banned user list
+    //...
+
+    // generate new user
+    WrongthinkUser b1;
+    GenericRequest g1;
+    grpc::ClientContext ctx2;
+    st = mstub->GenerateUser(&ctx2, g1, &b1);
+    ASSERT_TRUE(st.ok());
+    ASSERT_TRUE(!b1.admin());
+
+    // create a channel with bad credentials
+    call_creds = grpc::MetadataCredentialsFromPlugin(
+    std::unique_ptr<grpc::MetadataCredentialsPlugin>(
+        new WrongthinkTokenAuth::WrongthinkClientTokenPlugin("abc", "def")));
+    //channel_creds =  grpc::InsecureChannelCredentials();
+    //combined_creds = grpc::CompositeChannelCredentials(channel_creds, call_creds);
+    //channel = grpc::CreateChannel(server_address_, grpc::InsecureChannelCredentials());
+    //mstub = wrongthink::NewStub(channel);
+
+    //dummy user
+    WrongthinkUser u1;
+    u1.set_uname("abc");
+    u1.set_token("def");
+    BanUserRequest r1;
+    r1.set_uname(b1.uname());
+    r1.set_days(3);
+    grpc::ClientContext ctx3;
+    WrongthinkTokenAuth::addCredentials(&ctx3, &u1);
+    //ctx3.set_credentials(call_creds);
+    st = mstub->BanUser(&ctx3, r1, nullptr);
+    ASSERT_TRUE(!st.ok());
+    ASSERT_EQ(st.error_code(), StatusCode::UNAUTHENTICATED);
+    ASSERT_EQ(st.error_message(), "Invalid user");
+
+    // create channel with no creds
+    channel = grpc::CreateChannel(server_address_, grpc::InsecureChannelCredentials());
+    mstub = wrongthink::NewStub(channel);
+
+    grpc::ClientContext ctx4;
+    st = mstub->BanUser(&ctx4, r1, nullptr);
+    ASSERT_TRUE(!st.ok());
+    ASSERT_EQ(st.error_code(), StatusCode::UNAUTHENTICATED);
+    ASSERT_EQ(st.error_message(), "No credentials attached to the channel");
+
+    // create new user
+    // generate new user
+    WrongthinkUser b2;
+    grpc::ClientContext ctx5;
+    st = mstub->GenerateUser(&ctx5, g1, &b2);
+    ASSERT_TRUE(st.ok());
+    ASSERT_TRUE(!b2.admin());
+
+    // create a channel with b2's credentials
+    call_creds = grpc::MetadataCredentialsFromPlugin(
+    std::unique_ptr<grpc::MetadataCredentialsPlugin>(
+        new WrongthinkTokenAuth::WrongthinkClientTokenPlugin(b2.uname(), b2.token())));
+    //channel_creds =  grpc::InsecureChannelCredentials();
+    //combined_creds = grpc::CompositeChannelCredentials(channel_creds, call_creds);
+    channel = grpc::CreateChannel(server_address_, grpc::InsecureChannelCredentials());
+    mstub = wrongthink::NewStub(channel);
+    grpc::ClientContext ctx6;
+    ctx6.set_credentials(call_creds);
+    st = mstub->BanUser(&ctx6, r1, nullptr);
+    ASSERT_TRUE(!st.ok());
+    ASSERT_EQ(st.error_code(), StatusCode::UNAUTHENTICATED);
+    // b2 is not an admin
+    ASSERT_EQ(st.error_message(), "Invalid permission");
+
+  }
+
   TEST_F(RpcSuiteTest, TestGenerateUser) {
     WrongthinkUser resp;
-    Status st = service.GenerateUser(nullptr, nullptr, &resp);
+    Status st = service->GenerateUser(nullptr, nullptr, &resp);
     std::cout << "TestGenerateUser: uname: " << resp.uname()
               << " token: " << resp.token() << std::endl;
     ASSERT_TRUE(st.ok());
@@ -209,7 +326,7 @@ namespace {
     }
 
     ServerWriterWrapper<WrongthinkCommunity> wrapper;
-    st = service.GetWrongthinkCommunitiesImpl(nullptr, &wrapper);
+    st = service->GetWrongthinkCommunitiesImpl(nullptr, &wrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkCommunity>& objList = wrapper.getObjList();
@@ -272,7 +389,7 @@ namespace {
     ServerWriterWrapper<WrongthinkChannel> wrapper;
 
     req.set_communityid(cresp.communityid());
-    st = service.GetWrongthinkChannelsImpl(&req, &wrapper);
+    st = service->GetWrongthinkChannelsImpl(&req, &wrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkChannel>& objList = wrapper.getObjList();
@@ -321,7 +438,7 @@ namespace {
     msgList.push_back(msg1);
     msgList.push_back(msg2);
 
-    st = service.SendWrongthinkMessageImpl(&sendWrapper, nullptr);
+    st = service->SendWrongthinkMessageImpl(&sendWrapper, nullptr);
     ASSERT_TRUE(st.ok());
 
     // get message test
@@ -329,7 +446,7 @@ namespace {
     GetWrongthinkMessagesRequest getMsgReq;
 
     getMsgReq.set_channelid(chresp.channelid());
-    st = service.GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
+    st = service->GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkMessage>& msgList1 = getMessageWrapper.getObjList();
@@ -385,10 +502,10 @@ namespace {
     msg2.set_userid(uresp.userid());
     msg2.set_text("msg2");
 
-    st = service.SendWrongthinkMessageWeb(nullptr, &msg1, nullptr);
+    st = service->SendWrongthinkMessageWeb(nullptr, &msg1, nullptr);
     ASSERT_TRUE(st.ok());
 
-    st = service.SendWrongthinkMessageWeb(nullptr, &msg2, nullptr);
+    st = service->SendWrongthinkMessageWeb(nullptr, &msg2, nullptr);
     ASSERT_TRUE(st.ok());
 
     // get message test
@@ -396,7 +513,7 @@ namespace {
     GetWrongthinkMessagesRequest getMsgReq;
 
     getMsgReq.set_channelid(chresp.channelid());
-    st = service.GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
+    st = service->GetWrongthinkMessagesImpl(&getMsgReq, &getMessageWrapper);
     ASSERT_TRUE(st.ok());
 
     std::vector<WrongthinkMessage>& msgList1 = getMessageWrapper.getObjList();

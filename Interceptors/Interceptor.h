@@ -1,3 +1,6 @@
+#ifndef WRONGTHINK_INTERCEPTOR_H_
+#define WRONGTHINK_INTERCEPTOR_H_
+
 class LoggingInterceptor : public grpc::experimental::Interceptor {
  public:
   LoggingInterceptor(grpc::experimental::ServerRpcInfo* info,
@@ -42,6 +45,17 @@ class LoggingInterceptor : public grpc::experimental::Interceptor {
       const google::protobuf::Descriptor* descriptor = msg->GetDescriptor();
       logger_->info("RPC method: {}, peer: {}, request type: {}, request data: {}",
         info_->method(), serverContext->peer(), descriptor->name(), msg->ShortDebugString());
+      auto auth = serverContext->auth_context();
+      auto meta = serverContext->client_metadata();
+      logger_->info("Client metadata:");
+      for(auto& it : meta) {
+        // grpc::string_ref, what a useful class
+        auto strf = it.first;
+        auto strf1 = it.second;
+        std::string s1(strf.data(), strf.length());
+        std::string s2(strf1.data(), strf1.length());
+        logger_->debug("{}: {}", s1, s2);
+      }
       // check for banned user
       const google::protobuf::FieldDescriptor* fDesc = descriptor->FindFieldByName("uname");
       if(fDesc) {
@@ -85,3 +99,5 @@ private:
   std::shared_ptr<DBInterface> db_;
   std::shared_ptr<spdlog::logger> logger_;
 };
+
+#endif
