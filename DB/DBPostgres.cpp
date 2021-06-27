@@ -44,13 +44,13 @@ void DBPostgres::validate() {
   sql << "create table if not exists users ("
           "user_id           serial    primary key,"
           "uname             varchar(50) unique not null,"
-          "password          varchar(50) not null,"
+          "token             varchar(50) not null,"
           "admin             boolean default false)";
 
   sql << "create table if not exists banned_users ("
          "entry_id          serial primary key,"
          "user_id           int references users,"
-         "expire            date not null default CURRENT_DATE + 3)";
+         "expire            date not null)";
 
   sql << "create table if not exists banned_ips ("
          "entry_id          serial primary key,"
@@ -93,10 +93,30 @@ void DBPostgres::validate() {
           "mdate          timestamp with time zone not null default clock_timestamp())";
 }
 
+bool DBPostgres::isUserValid(const std::string& uname, const std::string& token) {
+  soci::session sql = getSociSession();
+  sql << "select * from users where uname = :uname and token = :token", use(uname), use(token);
+  return sql.got_data();
+}
+
+bool DBPostgres::isUserAdmin(const std::string& uname) {
+  soci::session sql = getSociSession();
+  sql << "select * from users where uname = :uname and admin = true", use(uname);
+  return sql.got_data();
+}
+
+bool DBPostgres::isUserModerator(const std::string& uname, int channel_id) {
+  soci::session sql = getSociSession();
+  sql << "select * from channels inner join users on channels.admin_id = users.user_id"
+      << "where channels.channel_id = :channel_id and users.uname = :uname", use(channel_id), use(uname);
+  return sql.got_data();
+}
+
 bool DBPostgres::isUserBanned(const std::string& uname, const std::string& ip) {
   soci::session sql = getSociSession();
   std::tm date;
-  sql << "select expire from banned_users where uname = :uname", use(uname), into(date);
+  sql << "select expire from banned_users inner join users on "
+      << "users.user_id = banned_users.user_id where uname = :uname", use(uname), into(date);
   if(!sql.got_data()) return false;
   std::time_t te = std::mktime(&date);
   std::time_t tc = std::time(nullptr);
@@ -133,7 +153,7 @@ void DBPostgres::banUser(const std::string& uname, int days) {
       sql << "update banned_users set expire = CURRENT_DATE + :days where user_id = :uid",
             use(days), use(uid);
     } else {
-      sql << "insert into banned_users (user_id,expire) values(:uid,CURRENT_DATE + :days)",
+      sql << "insert into banned_users (user_id,expire) values(:uid, CURRENT_DATE + :days::integer)",
              use(uid), use(days);
     }
   } else {
@@ -141,12 +161,13 @@ void DBPostgres::banUser(const std::string& uname, int days) {
   }
 }
 
-int DBPostgres::createUser(const std::string uname, const std::string password, int admin) {
+int DBPostgres::createUser(const std::string uname, const std::string token, int& admin) {
   soci::session sql = getSociSession();
-  int uid = 0;
-
-  sql << "insert into users (uname,password,admin) values(:uname,:password,:admin)",
-        use(uname), use(password), use(admin);
+  int uid = 0, adminct = 0;
+  sql << "select count(*) from users where admin = true",into(adminct);
+  if(adminct == 0) admin = true;
+  sql << "insert into users (uname,token,admin) values(:uname,:token,:admin)",
+        use(uname), use(token), use(admin);
   sql << "select user_id from users where uname = :uname", use(uname), into(uid);
 
   return uid;
