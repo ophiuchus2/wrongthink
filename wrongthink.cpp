@@ -75,7 +75,7 @@ void RunServer() {
       creators;
   creators.push_back(
       std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>(
-          new LoggingInterceptorFactory(db, logger)));
+          new WrongthinkInterceptors::LoggingInterceptorFactory(db, logger)));
   std::string server_address("0.0.0.0:50051");
   WrongthinkServiceImpl service( db, logger );
 

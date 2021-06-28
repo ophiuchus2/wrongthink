@@ -161,6 +161,7 @@ add_executable(wrongthink "wrongthink.cpp"
   "DB/DBInterface.cpp"
   "DB/DBPostgres.cpp"
   "DB/DBSQLite.cpp"
+  "Interceptors/Interceptor.cpp"
   ${wt_proto_srcs}
   ${wt_grpc_srcs})
 
@@ -192,6 +193,7 @@ add_executable(tests "test/rpc_tests.cpp"
   "DB/DBInterface.cpp"
   "DB/DBPostgres.cpp"
   "DB/DBSQLite.cpp"
+  "Interceptors/Interceptor.cpp"
   ${wt_proto_srcs}
   ${wt_grpc_srcs})
 

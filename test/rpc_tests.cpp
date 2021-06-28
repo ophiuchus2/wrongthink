@@ -68,7 +68,7 @@ namespace {
           creators;
       creators.push_back(
           std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>(
-              new LoggingInterceptorFactory(db, logger_)));
+              new WrongthinkInterceptors::LoggingInterceptorFactory(db, logger_)));
 
       ServerBuilder builder;
       server_address_ = "localhost:50052";
