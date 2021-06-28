@@ -55,12 +55,12 @@ void DBPostgres::validate() {
   sql << "create table if not exists banned_users ("
          "entry_id          serial primary key,"
          "user_id           int references users,"
-         "expire            date not null)";
+         "expire            int not null)";
 
   sql << "create table if not exists banned_ips ("
          "entry_id          serial primary key,"
          "ip                varchar(50) unique not null,"
-         "expire            date not null)";
+         "expire            int not null)";
 
   // create community table
   sql << "create table if not exists communities ("
@@ -150,17 +150,19 @@ bool DBPostgres::isIPBanned(const std::string& ip) {
 
 void DBPostgres::banUser(const std::string& uname, int days) {
   soci::session sql = getSociSession();
+  //convert days to ms
+  days = days * 24 * 60 * 60 * 1000;
   int uid;
   sql << "select user_id from users where uname = :uname", use(uname), into(uid);
   if (sql.got_data()) {
     sql << "select * from banned_users where user_id = :uid", use(uid);
     if(sql.got_data()) {
-      sql << "update banned_users set expire = CURRENT_DATE + :days where user_id = :uid",
+      sql << "update banned_users set expire = cast(extract(epoch from clock_timestamp()) as int) + :days where user_id = :uid",
             use(days), use(uid);
     } else {
-      sql << "insert into banned_users (user_id,expire) values(:uid, CURRENT_DATE + :days::integer)",
+      sql << "insert into banned_users (user_id,expire) values(:uid, cast(extract(epoch from clock_timestamp()) as int) + :days::integer)",
              use(uid), use(days);
-    }
+    }//cast(extract(epoch from clock_timestamp()) as int)
   } else {
     throw soci::soci_error("user not found");
   }
