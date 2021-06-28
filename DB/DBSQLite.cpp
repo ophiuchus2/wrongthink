@@ -16,3 +16,66 @@ You should have received a copy of the GNU Affero General Public License along w
 If not, see <https://www.gnu.org/licenses/>.
 */
 #include "DBSQLite.h"
+
+SQLiteDB::SQLiteDB(const std::string &filename) :
+  DBPostgres(soci::sqlite3, filename)
+{
+
+}
+
+void SQLiteDB::validate() {
+  // assume that the wrongthink database & user have already been created (manually)
+  soci::session sql = getSociSession();
+  // create tables if they don't already exist
+  // create users table
+  sql << "create table if not exists users ("
+          "user_id           integer    primary key,"
+          "uname             varchar(50) unique not null,"
+          "password          varchar(50) not null,"
+          "admin             boolean default false)";
+
+  sql << "create table if not exists banned_users ("
+         "entry_id          integer primary key,"
+         "user_id           int references users,"
+         "expire            date not null default (cast(strftime('%s', 'now', '+3 days') as int)))";
+
+  sql << "create table if not exists banned_ips ("
+         "entry_id          integer primary key,"
+         "ip                varchar(50) unique not null,"
+         "expire            date not null)";
+
+  // create community table
+  sql << "create table if not exists communities ("
+          "community_id       integer   primary key,"
+          "name               varchar(100) unique not null,"
+          "admin              int references users,"
+          "public             boolean default true)";
+
+  // create channel table
+  sql <<  "create table if not exists channels ("
+          "channel_id      integer  primary key,"
+          "name            varchar(100) unique not null,"
+          "community       int references communities,"
+          "admin              int references users,"
+          "allow_anon       boolean default true)";
+
+  // create message table
+  sql <<  "create table if not exists message ("
+          "msg_id         integer primary key,"
+          "user_id          int references users,"
+          "channel        int references channels,"
+          "thread_id      int,"
+          "thread_child   boolean not null default false,"
+          "edited         boolean default false,"
+          "mtext          text not null,"
+          "mdate          int not null default (cast(strftime('%s', 'now') as int)))";
+
+  // create control message table
+  sql <<  "create table if not exists control_message ("
+          "msg_id         integer primary key,"
+          "user_id          int references users,"
+          "channel        int references channels,"
+          "type           varchar(50),"
+          "mtext          text not null,"
+          "mdate          int not null default (cast(strftime('%s', 'now') as int)))";
+}

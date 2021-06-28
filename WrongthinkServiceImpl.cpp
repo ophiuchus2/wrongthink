@@ -18,6 +18,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "boost/uuid/uuid.hpp"
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
+#include "boost/stacktrace.hpp"
 #include "WrongthinkServiceImpl.h"
 #include "Authentication/WrongthinkTokenAuthenticator.h"
 #include <memory>
@@ -53,6 +54,7 @@ Status WrongthinkServiceImpl::BanUser(ServerContext* context, const BanUserReque
       db->banUser(request->uname(), request->days());
     } catch (const std::exception& e) {
       std::cout << e.what() << std::endl;
+      std::cout << boost::stacktrace::stacktrace();
       return Status(StatusCode::INTERNAL, "");
     }
     return Status::OK;
@@ -84,6 +86,7 @@ Status WrongthinkServiceImpl::GenerateUser(ServerContext* context, const Generic
     response->set_userid(uid);
   }catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
+    std::cout << boost::stacktrace::stacktrace();
     return Status(StatusCode::INTERNAL, "");
   }
   return Status::OK;
@@ -109,6 +112,7 @@ Status WrongthinkServiceImpl::GetWrongthinkCommunitiesImpl(const GetWrongthinkCo
     }
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
+    std::cout << boost::stacktrace::stacktrace();
     return Status(StatusCode::INTERNAL, "");
   }
   return Status::OK;
@@ -151,6 +155,7 @@ Status WrongthinkServiceImpl::GetWrongthinkChannelsImpl(const GetWrongthinkChann
     }
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
+    std::cout << boost::stacktrace::stacktrace();
     return Status(StatusCode::INTERNAL, "");
   }
   return Status::OK;
@@ -171,6 +176,7 @@ Status WrongthinkServiceImpl::CreateWrongthinkChannel(ServerContext* context,
     response->set_channelid(channelid);
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
+    std::cout << boost::stacktrace::stacktrace();
     return Status(StatusCode::INTERNAL, "");
   }
   return Status::OK;
@@ -189,6 +195,7 @@ Status WrongthinkServiceImpl::CreateWrongthinkCommunity(ServerContext* context,
     response->set_communityid(communityid);
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
+    std::cout << boost::stacktrace::stacktrace();
     return Status(StatusCode::INTERNAL, "");
   }
   return Status::OK;
@@ -212,6 +219,7 @@ Status WrongthinkServiceImpl::SendWrongthinkMessageWeb(ServerContext* context,
         use(text);
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
+    std::cout << boost::stacktrace::stacktrace();
     return Status(StatusCode::INTERNAL, "");
   }
   return Status::OK;
@@ -253,6 +261,7 @@ Status WrongthinkServiceImpl::SendWrongthinkMessageImpl(ServerReaderWrapper< Wro
     }
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
+    std::cout << boost::stacktrace::stacktrace();
     return Status(StatusCode::INTERNAL, "");
   }
   return Status::OK;
@@ -311,13 +320,14 @@ Status WrongthinkServiceImpl::GetWrongthinkMessagesImpl(const GetWrongthinkMessa
       msg.set_threadchild(row.get<int>("thread_child"));
       msg.set_edited(row.get<int>("edited"));
       msg.set_text(row.get<std::string>("mtext"));
-      std::tm tm = row.get<std::tm>("mdate");
-      msg.set_date(mktime(&tm));
+      //msg tm = row.get<int>("mdate");
+      msg.set_date(row.get<int>("mdate"));
       msg.set_messageid(row.get<int>("msg_id"));
       writer->Write(msg);
     }
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
+    std::cout << boost::stacktrace::stacktrace();
     return Status(StatusCode::INTERNAL, "");
   }
   return Status::OK;
@@ -338,6 +348,7 @@ Status WrongthinkServiceImpl::CreateUser(ServerContext* context, const CreateUse
     response->set_admin(admin);
   } catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
+    std::cout << boost::stacktrace::stacktrace();
     return Status(StatusCode::INTERNAL, "");
   }
   return Status::OK;

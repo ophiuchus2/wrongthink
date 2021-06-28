@@ -23,6 +23,8 @@ If not, see <https://www.gnu.org/licenses/>.
 #include <ctime>
 
 class DBPostgres : public DBInterface {
+protected:
+  DBPostgres(const soci::backend_factory &backend, const std::string conString);
 public:
   DBPostgres(const std::string &user, const std::string &pass, const std::string &dbName);
   ~DBPostgres();

@@ -45,16 +45,14 @@ using soci::into;
 template<typename obj>
 class ServerReaderWrapper {
 public:
-  ServerReaderWrapper(): objList{} { }
-  ServerReaderWrapper(ServerReader<obj>* _reader): objList{}, reader{_reader} { }
+  ServerReaderWrapper(): objList{}, pos{0} { }
+  ServerReaderWrapper(ServerReader<obj>* _reader): objList{}, pos{0}, reader{_reader} { }
 
   bool Read(obj* _obj) {
 #ifdef GTEST
-    static typename std::vector<obj>::iterator it = objList.begin();
-    if(it == objList.end())
+    if(pos == objList.size())
       return false;
-    *_obj = *it;
-    it++;
+    *_obj = objList[pos++];
     return true;
 #else
     return reader->Read(_obj);
@@ -65,6 +63,7 @@ public:
 
 private:
   std::vector<obj> objList;
+  int pos;
   ServerReader<obj>* reader;
 };
 

@@ -6,6 +6,13 @@ project(wrongthink VERSION 0.1)
 # set project version configuration file
 configure_file(include/WrongthinkConfig.h.in WrongthinkConfig.h)
 
+set(CMAKE_BUILD_TYPE Debug)
+
+IF(APPLE)
+  SET(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "Build architectures for Mac OS X" FORCE)
+  #set(CMAKE_APPLE_SILICON_PROCESSOR "arm64")
+ENDIF(APPLE)
+
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -16,6 +23,8 @@ set(WITH_ODBC OFF)
 set(WITH_ORACLE OFF)
 set(WITH_POSTGRESQL ON)
 set(WITH_SQLITE3 ON)
+
+add_definitions(-D_GNU_SOURCE -DBOOST_STACKTRACE_USE_ADDR2LINE)
 
 find_package(Threads REQUIRED)
 INCLUDE_DIRECTORIES( third_party/boost_uuid )
@@ -164,7 +173,8 @@ target_link_libraries(wrongthink
   soci_sqlite3
   pq
   ${Boost_LIBRARIES}
-  spdlog::spdlog_header_only)
+  spdlog::spdlog_header_only
+  dl)
 
 add_executable(test_client "test_client.cpp"
   ${wt_proto_srcs}
@@ -195,7 +205,8 @@ target_link_libraries(tests
   soci_sqlite3
   pq
   ${Boost_LIBRARIES}
-  spdlog::spdlog_header_only)
+  spdlog::spdlog_header_only
+  dl)
 
 target_include_directories(tests PUBLIC
                            include
@@ -204,6 +215,9 @@ target_include_directories(tests PUBLIC
                            /usr/local/include/
                            /usr/include/postgresql
                            .)
+
+target_link_directories(tests PUBLIC
+                      /opt/homebrew/opt/libpq/lib) 
 
 target_compile_definitions(tests PUBLIC GTEST)
 
@@ -218,6 +232,9 @@ target_include_directories(wrongthink PUBLIC
                            /usr/local/include/
                            /usr/include/postgresql
                            )
+
+target_link_directories(wrongthink PUBLIC
+                      /opt/homebrew/opt/libpq/lib) 
 
 # include directories
 target_include_directories(test_client PUBLIC

@@ -26,6 +26,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "spdlog/sinks/basic_file_sink.h"
 #include "DB/DBPostgres.h"
 #include "Authentication/WrongthinkTokenAuthenticator.h"
+#include "DB/DBSQLite.h"
 
 // grpc using statements
 using grpc::Server;
@@ -51,15 +52,17 @@ using soci::into;
 namespace {
 
 
-  class RpcSuiteTest : public ::testing::Test {
+  class RpcSuiteTest : public ::testing::TestWithParam<std::shared_ptr<DBInterface>> {
   protected:
 
     RpcSuiteTest() {
       coinfigureLog();
+      db = GetParam();
+      service.reset(new WrongthinkServiceImpl(db, logger_));
       //db = std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" );
       db->clear();
       db->validate();
-      service = std::make_shared<WrongthinkServiceImpl>(db, logger_);
+
       std::vector<
           std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>>
           creators;
@@ -101,6 +104,8 @@ namespace {
 
     void TearDown() override {
       db->clear();
+      if(server_)
+        server_->Shutdown();
     }
 
     Status setupUser(WrongthinkUser& uresp, CreateUserRequest* req) {
@@ -148,19 +153,20 @@ namespace {
       return st;
     }
 
-    std::shared_ptr<DBInterface> db{std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" )};
+    //std::shared_ptr<DBInterface> db{std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" )};
+    std::shared_ptr<DBInterface> db{std::make_shared<SQLiteDB>("sqlite.db")};
     std::vector<WrongthinkUser> users;
     std::vector<WrongthinkCommunity> communities;
     std::vector<WrongthinkChannel> channels;
     WrongthinkUser mUResp;
     std::shared_ptr<spdlog::logger> logger_;
-    std::shared_ptr<WrongthinkServiceImpl> service;
+    std::shared_ptr<WrongthinkServiceImpl> service = std::make_shared<WrongthinkServiceImpl>(db, logger_);
     // server members
     std::string server_address_;
     std::unique_ptr<Server> server_;
   };
 
-  TEST_F(RpcSuiteTest, TestBanUser) {
+  TEST_P(RpcSuiteTest, TestBanUser) {
 
     // generate user
     WrongthinkUser admin;
@@ -173,9 +179,11 @@ namespace {
         new WrongthinkTokenAuth::WrongthinkClientTokenPlugin(admin.uname(), admin.token())));
     //auto channel_creds =  grpc::InsecureChannelCredentials();
     //auto combined_creds = grpc::CompositeChannelCredentials(channel_creds, call_creds);
-    auto channel =
-        grpc::CreateChannel(server_address_, grpc::InsecureChannelCredentials());
+    /*auto channel =
+        grpc::CreateChannel(server_address_, grpc::InsecureChannelCredentials());*/
 
+    //grpc_impl::ChannelArguments &args
+    auto channel = server_->InProcessChannel({});
     auto mstub = wrongthink::NewStub(channel);
     grpc::ClientContext ctx;
     WrongthinkTokenAuth::addCredentials(&ctx, &admin);
@@ -272,7 +280,8 @@ namespace {
 
   }
 
-  TEST_F(RpcSuiteTest, TestGenerateUser) {
+  TEST_P(RpcSuiteTest, TestGenerateUser) {
+    auto db = GetParam();
     WrongthinkUser resp;
     Status st = service->GenerateUser(nullptr, nullptr, &resp);
     std::cout << "TestGenerateUser: uname: " << resp.uname()
@@ -281,7 +290,7 @@ namespace {
     EXPECT_NE(resp.userid(), 0);
   }
 
-  TEST_F(RpcSuiteTest, TestCreateUser) {
+  TEST_P(RpcSuiteTest, TestCreateUser) {
     WrongthinkUser resp;
     Status st = setupUser(resp, nullptr);
     ASSERT_TRUE(st.ok());
@@ -292,7 +301,7 @@ namespace {
     ASSERT_TRUE(!st.ok());
   }
 
-  TEST_F(RpcSuiteTest, TestCreateCommunity) {
+  TEST_P(RpcSuiteTest, TestCreateCommunity) {
     // create dummy user
     WrongthinkUser uresp;
     Status st = setupUser(uresp, nullptr);
@@ -307,7 +316,7 @@ namespace {
     ASSERT_TRUE(!st.ok());
   }
 
-  TEST_F(RpcSuiteTest, TestGetCommunity) {
+  TEST_P(RpcSuiteTest, TestGetCommunity) {
     constexpr int COUNT = 10;
     // create dummy user
     WrongthinkUser uresp;
@@ -337,7 +346,7 @@ namespace {
     }
   }
 
-  TEST_F(RpcSuiteTest, TestCreateChannel) {
+  TEST_P(RpcSuiteTest, TestCreateChannel) {
     // create dummy user
     WrongthinkUser uresp;
     Status st = setupUser(uresp, nullptr);
@@ -358,7 +367,7 @@ namespace {
     ASSERT_TRUE(!st.ok());
   }
 
-  TEST_F(RpcSuiteTest, TestGetChannel) {
+  TEST_P(RpcSuiteTest, TestGetChannel) {
     constexpr int COUNT = 10;
     // create dummy user
     WrongthinkUser uresp;
@@ -400,7 +409,7 @@ namespace {
     }
   }
 
-  TEST_F(RpcSuiteTest, TestMessages) {
+  TEST_P(RpcSuiteTest, TestMessages) {
     // create dummy user
     WrongthinkUser uresp;
     Status st = setupUser(uresp, nullptr);
@@ -470,7 +479,7 @@ namespace {
     EXPECT_EQ(rMsg2.text(), "msg2");
   }
 
-  TEST_F(RpcSuiteTest, TestMessageWeb) {
+  TEST_P(RpcSuiteTest, TestMessageWeb) {
     // create dummy user
     WrongthinkUser uresp;
     Status st = setupUser(uresp, nullptr);
@@ -537,4 +546,61 @@ namespace {
     EXPECT_EQ(rMsg2.text(), "msg2");
   }
 
+  auto tValues = ::testing::Values(
+                std::make_shared<SQLiteDB>("sqlite.db"), 
+                std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" )
+        );
+
+  INSTANTIATE_TEST_CASE_P(
+        DBTEST,
+        RpcSuiteTest,
+        tValues
+        );
+
+  /*INSTANTIATE_TEST_CASE_P(
+        TestGenerateUser,
+        RpcSuiteTest,
+        tValues
+        );
+
+  INSTANTIATE_TEST_CASE_P(
+        TestCreateUser,
+        RpcSuiteTest,
+        tValues
+        );
+
+  INSTANTIATE_TEST_CASE_P(
+        TestCreateCommunity,
+        RpcSuiteTest,
+        tValues
+        );
+
+  INSTANTIATE_TEST_CASE_P(
+        TestGetCommunity,
+        RpcSuiteTest,
+        tValues
+        );
+
+  INSTANTIATE_TEST_CASE_P(
+        TestCreateChannel,
+        RpcSuiteTest,
+        tValues
+        );
+
+  INSTANTIATE_TEST_CASE_P(
+        TestGetChannel,
+        RpcSuiteTest,
+        tValues
+        );
+
+  INSTANTIATE_TEST_CASE_P(
+        TestMessages,
+        RpcSuiteTest,
+        tValues
+        );
+  INSTANTIATE_TEST_CASE_P(
+        TestMessagesWeb,
+        RpcSuiteTest,
+        tValues
+        );*/
 }

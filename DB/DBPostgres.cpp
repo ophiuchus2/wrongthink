@@ -22,6 +22,11 @@ DBPostgres::DBPostgres(const std::string &user, const std::string &pass, const s
 {
 }
 
+DBPostgres::DBPostgres(const soci::backend_factory &backend, const std::string conString) :
+  DBInterface(backend, conString)
+{
+}
+
 DBPostgres::~DBPostgres() {
 }
 
@@ -81,7 +86,7 @@ void DBPostgres::validate() {
           "thread_child   boolean not null default false,"
           "edited         boolean default false,"
           "mtext          text not null,"
-          "mdate          timestamp with time zone not null default clock_timestamp())";
+          "mdate          int not null default cast(extract(epoch from clock_timestamp()) as int))";
 
   // create control message table
   sql <<  "create table if not exists control_message ("
@@ -90,7 +95,7 @@ void DBPostgres::validate() {
           "channel        int references channels,"
           "type           varchar(50),"
           "mtext          text not null,"
-          "mdate          timestamp with time zone not null default clock_timestamp())";
+          "mdate          int not null default cast(extract(epoch from clock_timestamp()) as int))";
 }
 
 bool DBPostgres::isUserValid(const std::string& uname, const std::string& token) {
@@ -217,6 +222,18 @@ rowset<row> DBPostgres::getCommunityChannelsRowset(soci::session &sql, const int
 
   return rs;
 }
+
+/*
+sql <<  "create table if not exists message ("
+          "msg_id         serial primary key,"
+          "user_id          int references users,"
+          "channel        int references channels,"
+          "thread_id      int,"
+          "thread_child   boolean not null default false,"
+          "edited         boolean default false,"
+          "mtext          text not null,"
+          "mdate          timestamp with time zone not null default clock_timestamp())";
+*/
 
 rowset<row> DBPostgres::getChannelMessages(soci::session &sql, const int channel_id) {
   rowset<row> rs = (sql.prepare << "select * from message inner join users on "

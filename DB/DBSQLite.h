@@ -19,8 +19,14 @@ If not, see <https://www.gnu.org/licenses/>.
 #define DB_SQLITE_H
 
 #include "DBInterface.h"
+#include "DBPostgres.h"
+#include "soci-sqlite3.h"
 
-class SQLiteDB : public DBInterface {
+class SQLiteDB : public DBPostgres {
+public:
+  SQLiteDB(const std::string &filename);
+  virtual ~SQLiteDB() {}
+  virtual void validate() override;
 };
 
 #endif // DB_SQLITE_H
