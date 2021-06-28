@@ -31,7 +31,7 @@ void SQLiteDB::validate() {
   sql << "create table if not exists users ("
           "user_id           integer    primary key,"
           "uname             varchar(50) unique not null,"
-          "password          varchar(50) not null,"
+          "token          varchar(50) not null,"
           "admin             boolean default false)";
 
   sql << "create table if not exists banned_users ("
