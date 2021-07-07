@@ -55,8 +55,11 @@ target_include_directories(wrongthink PUBLIC
                            )
 ```
 
-
 Postgres can either be manually set up locally, or automatically using docker
+
+#### Ubuntu dependencies
+
+`sudo apt install git build-essential cmake libpq-dev libsqlite3-0 libsqlite3-dev libboost-all-dev binutils`
 
 #### Local Setup
 
