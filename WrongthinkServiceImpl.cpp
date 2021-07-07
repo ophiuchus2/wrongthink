@@ -52,6 +52,7 @@ Status WrongthinkServiceImpl::BanUser(ServerContext* context, const BanUserReque
       if (!db->isUserAdmin(creds.first))
         return Status(StatusCode::UNAUTHENTICATED, "Invalid permission");
       db->banUser(request->uname(), request->days());
+      response->set_message("test");
     } catch (const std::exception& e) {
       std::cout << e.what() << std::endl;
       std::cout << boost::stacktrace::stacktrace();

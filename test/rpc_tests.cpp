@@ -21,6 +21,7 @@ If not, see <https://www.gnu.org/licenses/>.
 #include "wrongthink.grpc.pb.h"
 #include <vector>
 #include <iostream>
+#include <thread>
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/sinks/basic_file_sink.h"
@@ -64,14 +65,13 @@ namespace {
       db->validate();
 
       std::vector<
-          std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>>
-          creators;
+        std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>>
+        creators;
       creators.push_back(
           std::unique_ptr<grpc::experimental::ServerInterceptorFactoryInterface>(
               new WrongthinkInterceptors::LoggingInterceptorFactory(db, logger_)));
-
       ServerBuilder builder;
-      server_address_ = "localhost:50052";
+      this->server_address_ = "localhost:50052";
       //auto server_creds = grpc::SslServerCredentials({});
       // add server credential processor
       //server_creds->SetAuthMetadataProcessor(
@@ -79,7 +79,7 @@ namespace {
       builder.AddListeningPort(server_address_, grpc::InsecureServerCredentials());
       builder.RegisterService(service.get());
       builder.experimental().SetInterceptorCreators(std::move(creators));
-      server_ = builder.BuildAndStart();
+      this->server_ = builder.BuildAndStart();
       logger_->info("test server listening on {}", server_address_);
     }
 
@@ -185,6 +185,7 @@ namespace {
     //grpc_impl::ChannelArguments &args
     auto channel = server_->InProcessChannel({});
     auto mstub = wrongthink::NewStub(channel);
+    
     grpc::ClientContext ctx;
     WrongthinkTokenAuth::addCredentials(&ctx, &admin);
     //ctx.set_credentials(call_creds);
@@ -203,7 +204,8 @@ namespace {
     grpc::ClientContext ctx1;
     WrongthinkTokenAuth::addCredentials(&ctx1, &admin);
     //ctx1.set_credentials(call_creds);
-    st = mstub->BanUser(&ctx1, req, nullptr);
+    GenericResponse resp;
+    st = mstub->BanUser(&ctx1, req, &resp);
     logger_->info("call_creds debug string: {}", call_creds->DebugString());
     logger_->info("ban user error message: {}", st.error_message());
     ASSERT_TRUE(st.ok());
@@ -271,7 +273,8 @@ namespace {
     channel = grpc::CreateChannel(server_address_, grpc::InsecureChannelCredentials());
     mstub = wrongthink::NewStub(channel);
     grpc::ClientContext ctx6;
-    ctx6.set_credentials(call_creds);
+    //ctx6.set_credentials(call_creds);
+    WrongthinkTokenAuth::addCredentials(&ctx6, &b2);
     st = mstub->BanUser(&ctx6, r1, nullptr);
     ASSERT_TRUE(!st.ok());
     ASSERT_EQ(st.error_code(), StatusCode::UNAUTHENTICATED);
