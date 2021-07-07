@@ -27,6 +27,7 @@ public:
   SQLiteDB(const std::string &filename);
   virtual ~SQLiteDB() {}
   virtual void validate() override;
+  virtual void banUser(const std::string& uname, int days) override;
 };
 
 #endif // DB_SQLITE_H
