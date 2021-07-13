@@ -53,6 +53,61 @@ using soci::into;
 namespace {
 
 
+  /* hijacking interceptor used to inject auth credentials to each rpc call */
+  class AuthInterceptor : public grpc::experimental::Interceptor {
+  public:
+    AuthInterceptor(grpc::experimental::ClientRpcInfo* info, const std::string& uname, const std::string& token) : info_{info}, 
+                                                                          uname_{uname}, 
+                                                                          token_{token}, 
+                                                                          inject_{true} { }
+
+    void setCreds(const std::string& uname, const std::string& token) {
+      uname_ = uname;
+      token_ = token;
+      inject_ = true;
+    }
+
+    void clearCreds() {
+      uname_ = "";
+      token_ = "";
+      inject_ = false;
+    }
+
+    virtual void Intercept(grpc::experimental::InterceptorBatchMethods* methods) override {
+      
+      
+      if (methods->QueryInterceptionHookPoint(
+              grpc::experimental::InterceptionHookPoints::PRE_SEND_INITIAL_METADATA) && inject_) {
+        auto* map = methods->GetSendInitialMetadata();
+        map->emplace(std::make_pair(WrongthinkTokenAuth::AUTH_UNAME_KEY, uname_));
+        map->emplace(std::make_pair(WrongthinkTokenAuth::AUTH_TOKEN_KEY, token_));
+      }
+      
+      methods->Proceed();
+      
+    }
+
+  private:
+    grpc::experimental::ClientRpcInfo* info_;
+    std::string uname_;
+    std::string token_;
+    bool inject_;
+  };
+
+  class AuthInterceptorFactory
+    : public grpc::experimental::ClientInterceptorFactoryInterface {
+  public:
+    AuthInterceptorFactory(const std::string& uname, const std::string& token) :  uname_{uname}, token_{token} {}
+    
+    virtual grpc::experimental::Interceptor* CreateClientInterceptor(
+        grpc::experimental::ClientRpcInfo* info) override {
+      return new AuthInterceptor(info, this->uname_, this->token_);
+    }
+    private:
+      std::string uname_;
+      std::string token_;
+  };
+
   class RpcSuiteTest : public ::testing::TestWithParam<std::shared_ptr<DBInterface>> {
   protected:
 
@@ -81,6 +136,12 @@ namespace {
       builder.experimental().SetInterceptorCreators(std::move(creators));
       this->server_ = builder.BuildAndStart();
       logger_->info("test server listening on {}", server_address_);
+      
+      
+    }
+
+    ~RpcSuiteTest() {
+      //delete inst_;
     }
 
     void coinfigureLog() {
@@ -100,6 +161,14 @@ namespace {
     void SetUp() override {
       db->clear();
       db->validate();
+      setupAdmin();
+      //ASSERT_TRUE(st.ok());
+      std::vector<std::unique_ptr<grpc::experimental::ClientInterceptorFactoryInterface>> ccreators;
+      ccreators.push_back(std::unique_ptr<grpc::experimental::ClientInterceptorFactoryInterface>(
+        new AuthInterceptorFactory(admin_.uname(), admin_.token())));
+      auto channel =
+        grpc::experimental::CreateCustomChannelWithInterceptors(server_address_, grpc::InsecureChannelCredentials(), {}, std::move(ccreators));
+      stub_ = wrongthink::NewStub(channel);
     }
 
     void TearDown() override {
@@ -153,6 +222,11 @@ namespace {
       return st;
     }
 
+    Status setupAdmin() {
+      Status st = service->GenerateUser(nullptr, nullptr, &admin_);
+      return st;
+    }
+
     //std::shared_ptr<DBInterface> db{std::make_shared<DBPostgres>( "wrongthink", "test", "testdb" )};
     std::shared_ptr<DBInterface> db{std::make_shared<SQLiteDB>("sqlite.db")};
     std::vector<WrongthinkUser> users;
@@ -164,19 +238,45 @@ namespace {
     // server members
     std::string server_address_;
     std::unique_ptr<Server> server_;
+    std::unique_ptr< wrongthink::Stub> stub_;
+    WrongthinkUser admin_;
   };
+
+  TEST_P(RpcSuiteTest, TestAuth) {
+    //auto channel = server_->InProcessChannel({});
+    // generate user
+
+    WrongthinkUser banned;
+    GenericRequest greq;
+    grpc::ClientContext ctx;
+    Status st = stub_->GenerateUser(&ctx, greq, &banned);
+    logger_->info("generate user error message: {}", st.error_message());
+    ASSERT_TRUE(st.ok());
+    ASSERT_TRUE(!banned.admin());
+
+    BanUserRequest req;
+    req.set_uname(banned.uname());
+    req.set_days(3);
+
+    grpc::ClientContext ctx1;
+    //WrongthinkTokenAuth::addCredentials(&ctx1, &admin);
+    //ctx1.set_credentials(call_creds);
+    GenericResponse resp;
+    st = stub_->BanUser(&ctx1, req, &resp);
+    logger_->info("ban user error message: {}", st.error_message());
+    ASSERT_TRUE(st.ok());
+
+
+
+  }
 
   TEST_P(RpcSuiteTest, TestBanUser) {
 
-    // generate user
-    WrongthinkUser admin;
-    Status st = service->GenerateUser(nullptr, nullptr, &admin);
-    ASSERT_TRUE(st.ok());
-    ASSERT_TRUE(admin.admin());
+    
 
     auto call_creds = grpc::MetadataCredentialsFromPlugin(
     std::unique_ptr<grpc::MetadataCredentialsPlugin>(
-        new WrongthinkTokenAuth::WrongthinkClientTokenPlugin(admin.uname(), admin.token())));
+        new WrongthinkTokenAuth::WrongthinkClientTokenPlugin(admin_.uname(), admin_.token())));
     //auto channel_creds =  grpc::InsecureChannelCredentials();
     //auto combined_creds = grpc::CompositeChannelCredentials(channel_creds, call_creds);
     /*auto channel =
@@ -187,12 +287,12 @@ namespace {
     auto mstub = wrongthink::NewStub(channel);
     
     grpc::ClientContext ctx;
-    WrongthinkTokenAuth::addCredentials(&ctx, &admin);
+    WrongthinkTokenAuth::addCredentials(&ctx, &admin_);
     //ctx.set_credentials(call_creds);
 
     WrongthinkUser banned;
     GenericRequest greq;
-    st = mstub->GenerateUser(&ctx, greq, &banned);
+    Status st = mstub->GenerateUser(&ctx, greq, &banned);
     //logger_->info("generate user error message: {}", st.error_message());
     ASSERT_TRUE(st.ok());
     ASSERT_TRUE(!banned.admin());
@@ -202,7 +302,7 @@ namespace {
     req.set_days(3);
 
     grpc::ClientContext ctx1;
-    WrongthinkTokenAuth::addCredentials(&ctx1, &admin);
+    WrongthinkTokenAuth::addCredentials(&ctx1, &admin_);
     //ctx1.set_credentials(call_creds);
     GenericResponse resp;
     st = mstub->BanUser(&ctx1, req, &resp);

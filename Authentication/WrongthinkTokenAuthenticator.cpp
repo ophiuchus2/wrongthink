@@ -2,9 +2,6 @@
 
 namespace WrongthinkTokenAuth {
 
-const std::string AUTH_UNAME_KEY = "auth-uname";
-const std::string AUTH_TOKEN_KEY = "auth-token";
-
 grpc::Status WrongthinkClientTokenPlugin::GetMetadata(
     grpc::string_ref service_url, grpc::string_ref method_name,
     const grpc::AuthContext& channel_auth_context,

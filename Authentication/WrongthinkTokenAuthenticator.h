@@ -19,6 +19,9 @@ using grpc::StatusCode;
 
 namespace WrongthinkTokenAuth {
 
+const std::string AUTH_UNAME_KEY = "auth-uname";
+const std::string AUTH_TOKEN_KEY = "auth-token";
+
 class WrongthinkClientTokenPlugin : public grpc::MetadataCredentialsPlugin {
  public:
   WrongthinkClientTokenPlugin(const grpc::string& uname,
